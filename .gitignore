@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# unused assets
+/nanobanana-output
+/docs/concept-art
+/public/images/astronaut
+/public/images/bg
+/public/images/capsule
+/public/images/card
+/public/images/leaf
+/public/images/planet
+/public/images/stars
+public/Figur\ logo/PNG/01\ Figur\ logo-Black.png
+public/Figur\ logo/PNG/01\ Figur\ logo-White.png
+public/Figur\ logo/PNG/01\ Figur\ logo.png
+public/Figur\ logo/PNG/02\ Figur\ logo-\(slogan\)-Black.png
+public/Figur\ logo/PNG/02\ Figur\ logo-\(slogan\)-White.png
+public/Figur\ logo/PNG/02\ Figur\ logo-\(slogan\).png
+public/Figur\ logo/PNG/03\ Figur\ logo-v2-Black.png
+public/Figur\ logo/PNG/03\ Figur\ logo-v2-White.png
+public/Figur\ logo/PNG/04\ Figur\ logotype-Black.png
+public/Figur\ logo/PNG/04\ Figur\ logotype-White.png
+public/Figur\ logo/PNG/04\ Figur\ logotype.png
+public/Figur\ logo/PNG/05\ Figur\ logomark-Black.png
+public/Figur\ logo/PNG/05\ Figur\ logomark-White.png
+public/Figur\ logo/PNG/05\ Figur\ logomark.png
+public/Figur\ logo/PNG/Pattern-Black.png
+public/Figur\ logo/PNG/Pattern-White.png
+public/Figur\ logo/PNG/Pattern.png
+public/Figur\ logo/SVG/
