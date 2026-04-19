@@ -2,8 +2,10 @@ export interface EntryFormData {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   residency: "resident" | "tourist";
-  nationality: string;
+  preferredLanguage: "english" | "arabic";
+  figurPurpose: string;
 }
 
 export type PrizeType = "discount" | "points";
@@ -28,7 +30,6 @@ export interface EntryResult {
 export type JourneyAct =
   | "earth"
   | "liftoff"
-  | "figland"
   | "form"
   | "prize-selection"
   | "confirmation";

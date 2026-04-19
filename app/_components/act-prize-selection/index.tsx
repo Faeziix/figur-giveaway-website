@@ -9,6 +9,15 @@ import { Sparkles } from "@/app/_components/shared/sparkles";
 import { PRIZES } from "@/app/_lib/prize-catalog";
 import type { EntryFormData, EntryResult } from "@/app/_types";
 
+const CHEST_LABELS = [
+  "Golden",
+  "Crimson",
+  "Jade",
+  "Sapphire",
+  "Twilight",
+  "Ember",
+];
+
 interface ActPrizeSelectionProps {
   formData: EntryFormData;
   onRevealed: (result: EntryResult) => void;
@@ -49,7 +58,7 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
       />
       <Sparkles count={12} />
 
-      <div className="relative z-10 flex flex-col items-center gap-10 px-6 text-center w-full max-w-sm">
+      <div className="relative z-10 flex flex-col items-center gap-10 px-6 text-center w-full max-w-lg">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,6 +101,8 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
               >
                 <TreasureChest
                   prizeId={prize.id}
+                  chestIndex={i + 1}
+                  label={CHEST_LABELS[i]}
                   isSelected={isSelected}
                   isRevealed={isSelected && revealed}
                   isDisabled={isOther || isRevealing}
@@ -110,59 +121,64 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
 
 interface TreasureChestProps {
   prizeId: number;
+  chestIndex: number;
+  label: string;
   isSelected: boolean;
   isRevealed: boolean;
   isDisabled: boolean;
   onPick: () => void;
 }
 
-function TreasureChest({ prizeId, isSelected, isRevealed, isDisabled, onPick }: TreasureChestProps) {
+function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isDisabled, onPick }: TreasureChestProps) {
   return (
-    <motion.button
-      onClick={onPick}
-      disabled={isDisabled}
-      aria-label={`Chest ${prizeId}`}
-      className="relative cursor-pointer disabled:cursor-default focus:outline-none focus-visible:ring-4 focus-visible:ring-[--color-butter]/50 rounded-2xl"
-      whileHover={!isDisabled && !isSelected ? { y: -6, rotate: 1 } : {}}
-      transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-      style={{ width: 96, height: 96, perspective: "600px" }}
-    >
-      <motion.div
-        className="relative w-full h-full"
-        style={{ transformStyle: "preserve-3d" }}
-        animate={{ rotateY: isRevealed ? 180 : 0 }}
-        transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
+    <div className="flex flex-col items-center gap-2">
+      <motion.button
+        onClick={onPick}
+        disabled={isDisabled}
+        aria-label={`${label} Chest`}
+        className="relative cursor-pointer disabled:cursor-default focus:outline-none focus-visible:ring-4 focus-visible:ring-[--color-butter]/50 rounded-2xl"
+        whileHover={!isDisabled && !isSelected ? { y: -6, rotate: 1 } : {}}
+        transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{ width: 96, height: 96, perspective: "600px" }}
       >
-        <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
-          <Image
-            src="/images/pixar/chest-closed.png"
-            alt="Treasure chest"
-            width={96}
-            height={96}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-        >
-          <Image
-            src="/images/pixar/chest-open.png"
-            alt="Open treasure chest"
-            width={96}
-            height={96}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
-        </div>
-      </motion.div>
-
-      {isSelected && !isRevealed && (
         <motion.div
-          className="absolute inset-0 rounded-2xl ring-4 ring-[--color-butter]"
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 0.8, repeat: Infinity }}
-        />
-      )}
-    </motion.button>
+          className="relative w-full h-full"
+          style={{ transformStyle: "preserve-3d" }}
+          animate={{ rotateY: isRevealed ? 180 : 0 }}
+          transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
+        >
+          <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
+            <Image
+              src={`/images/pixar/chest-${chestIndex}.png`}
+              alt={`${label} treasure chest`}
+              width={96}
+              height={96}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </div>
+          <div
+            className="absolute inset-0"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          >
+            <Image
+              src={`/images/pixar/chest-open-${chestIndex}.png`}
+              alt={`Open ${label} treasure chest`}
+              width={96}
+              height={96}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </div>
+        </motion.div>
+
+        {isSelected && !isRevealed && (
+          <motion.div
+            className="absolute inset-0 rounded-2xl ring-4 ring-[--color-butter]"
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          />
+        )}
+      </motion.button>
+      <span className="font-body text-[--color-ink-soft] text-xs">{label}</span>
+    </div>
   );
 }

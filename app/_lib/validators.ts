@@ -17,12 +17,20 @@ export const entrySchema = z.object({
     .email("Please enter a valid email address")
     .toLowerCase()
     .trim(),
+  phone: z
+    .string()
+    .min(5, "Phone number is required")
+    .max(30)
+    .trim(),
   residency: z.enum(["resident", "tourist"], {
     errorMap: () => ({ message: "Please select resident or tourist" }),
   }),
-  nationality: z
+  preferredLanguage: z.enum(["english", "arabic"], {
+    errorMap: () => ({ message: "Please select a language" }),
+  }),
+  figurPurpose: z
     .string()
-    .min(1, "Nationality is required")
+    .min(1, "Please select an option")
     .trim(),
   prizeId: z.number().int().min(1).max(6),
 });

@@ -5,7 +5,7 @@ export const PRIZES: Prize[] = [
     id: 1,
     type: "discount",
     headline: "15% Off Any Stufig",
-    description: "A taste of Figland — 15% off our entire Coated Stufig collection.",
+    description: "15% off our entire Coated Stufig collection — a Figur favourite.",
     value: "15% off Coated Stufig",
     discountPercent: 15,
   },

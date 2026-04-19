@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Project: Figur Giveaway Microsite
 
 ## Overview
@@ -6,6 +10,14 @@
 - **Package Manager**: bun (never npm)
 - **Started**: 2026-04-18
 - **Parent brand docs**: `/home/faezix/Work/My Clients/Figur/CLAUDE.md`
+
+## Commands
+```bash
+bun dev          # start local dev server
+bun lint         # run ESLint
+bun build        # production build (only when explicitly requested)
+bun start        # start production server
+```
 
 ## Visual Direction
 **Pixar 3D — Wonder** — approved 2026-04-18, replacing the prior Persian Celestial Heritage direction.
@@ -21,17 +33,16 @@ Key rules:
 - Sparkle sprites: `public/images/pixar/sparkle-0*.png` (4 variations, chubby 3D stars)
 
 ## Architecture Decisions
-- Single-page multi-act (earth → liftoff → figland → form → prize-selection → confirmation)
-- State managed in a single Zustand store (avoid prop-drilling)
+- Single-page multi-act: `earth → form → liftoff → prize-selection → confirmation`
+- Act state lives in `app/page.tsx` local state (Zustand store exists at `app/_lib/store.ts` but is dormant)
 - All acts are full-viewport sections swapped with AnimatePresence
-- API: one route `/api/entry` (POST), one `/api/check-duplicate` (POST)
-- Locality of behavior: underscore-prefix folders `_components`, `_lib`, `_hooks`, `_types` per route
-- Shared code: `components/ui/`, `lib/`
+- API: `POST /api/entry`, `POST /api/check-duplicate`
+- Locality of behavior: underscore-prefix folders `_components`, `_lib`, `_hooks`, `_types` inside `app/`
+- Shared primitives: `components/ui/` — all use CVA
 
 ## Preferences & Rules
-- Use `axios` not `fetch` per global rule
+- Use `axios` not `fetch`
 - Use `motion` (Framer Motion v11) for component transitions; GSAP for scroll-timeline
-- All primitive components (Button, Input, Select, Link) live in `components/ui/` and use CVA
 - Design tokens in `app/globals.css` under `@theme` — OKLCH only
 - No comments in code; use expressive names
 - No build checks unless explicitly requested
@@ -40,8 +51,8 @@ Key rules:
 - Act components: `app/_components/act-{name}/index.tsx`
 - Shared UI: `app/_components/shared/`
 - Primitives: `components/ui/{button,input,select,link}.tsx`
-- Font variables: `--font-playfair`, `--font-inter`, `--font-cormorant`
-- Color token format: `--color-brand-{name}` for raw, `--color-{semantic}` for alias
+- Font CSS variables: `--font-fraunces`, `--font-jakarta`, `--font-caveat`
+- Color token format: raw palette names (`--color-cream`, `--color-plum`, `--color-butter`, etc.), semantic aliases (`--color-surface`, `--color-primary`, `--color-accent`, `--color-text`)
 
 ## Learnings & Corrections
 
@@ -55,7 +66,7 @@ Key rules:
 - `@shopify/admin-api-client` — discount code creation
 - `resend` — transactional email
 - `posthog-js` + `posthog-node` — analytics
-- `zustand` — global giveaway state
+- `zustand` — global giveaway state (dormant; page.tsx uses local state)
 - `axios` — HTTP calls
 
 ## Component Registry
@@ -63,14 +74,14 @@ Key rules:
 - `components/ui/Input` — with label + error
 - `components/ui/Select` — with options + label + error
 - `components/ui/Link` — wraps Next Link + external
-- `app/_components/shared/BackgroundStars` — SVG Islamic geometric stars
-- `app/_components/shared/ManuscriptBorder` — gold corner ornament frame
-- `app/_components/shared/SectionEyebrow` — italic gold label with rules
+- `app/_components/shared/Sparkles` — animated sparkle sprite overlay
+- `app/_components/shared/CharacterFloat` — spring-physics floating character
+- `app/_components/shared/SplitText` — text split for word-by-word animation
+- `app/_components/shared/LenisProvider` — Lenis smooth scroll context
 - `app/_components/act-earth` — hero landing act
 - `app/_components/act-liftoff` — auto-advance transition act (3.2s)
-- `app/_components/act-figland` — arrival + CTA act
-- `app/_components/act-form` — 5-field entry form
-- `app/_components/act-prize-selection` — 6 moon cards, pick one, flip reveal
+- `app/_components/act-form` — entry form act
+- `app/_components/act-prize-selection` — chest mechanic, prize reveal
 - `app/_components/act-confirmation` — prize display + code copy + store CTA
 
 ## API & Data Layer
@@ -97,10 +108,9 @@ POSTHOG_HOST=https://app.posthog.com
 - New fonts: Fraunces + Plus Jakarta Sans + Caveat in `lib/fonts.ts`
 - New shared components: `Sparkles`, `CharacterFloat`, `SplitText`, `LenisProvider`
 - Lenis smooth scroll activated in `app/layout.tsx`
-- All 5 acts redesigned: Earth, Liftoff, Form, Prize-Selection (chest mechanic), Confirmation
+- All 5 acts implemented: Earth, Liftoff, Form, Prize-Selection (chest mechanic), Confirmation
 - 11 Pixar 3D assets generated + cropped in `public/images/pixar/`
 - API routes scaffolded: `/api/entry`, `/api/check-duplicate`
-- Zustand store (`app/_lib/store.ts`) left dormant — page.tsx uses local state
 - Needs: env vars from client (Airtable, Shopify, Resend)
 
 ## Image Generation Notes

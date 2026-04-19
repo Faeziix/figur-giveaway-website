@@ -3,11 +3,11 @@ import { fraunces, jakarta, caveat } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Figur — A Gift From Figland",
-  description: "Enter the Figur giveaway. Journey to Figland and claim your prize.",
+  title: "Figur — A Gift From Figur",
+  description: "Enter the Figur giveaway. Journey through the Solar Fig universe and claim your prize.",
   openGraph: {
-    title: "Figur — A Gift From Figland",
-    description: "Enter the Figur giveaway. Journey to Figland and claim your prize.",
+    title: "Figur — A Gift From Figur",
+    description: "Enter the Figur giveaway. Journey through the Solar Fig universe and claim your prize.",
     siteName: "Figur",
   },
 };

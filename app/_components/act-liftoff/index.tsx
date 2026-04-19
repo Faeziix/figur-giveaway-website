@@ -44,7 +44,7 @@ export function ActLiftoff() {
           <CharacterFloat amplitude={16} duration={2.8} rock>
             <Image
               src="/images/pixar/rocket-flight.png"
-              alt="Figur rocket ascending to Figland"
+              alt="Figur rocket ascending through the Solar Fig universe"
               width={240}
               height={320}
             />
@@ -61,7 +61,7 @@ export function ActLiftoff() {
             className="text-[--color-cream] leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 4vw, 4.5rem)" }}
           >
-            Bound for Figland
+            Bound for Figur
           </h2>
           <p className="font-body text-[--color-cream]/60 text-sm max-w-xs mx-auto">
             The fig-rocket ascends through the stars.

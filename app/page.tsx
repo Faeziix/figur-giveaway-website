@@ -55,7 +55,7 @@ export default function GiveawayPage() {
           )}
 
           {act === "confirmation" && result && formData && (
-            <ActConfirmation result={result} email={formData.email} />
+            <ActConfirmation result={result} email={formData.email} firstName={formData.firstName} />
           )}
         </motion.div>
       </AnimatePresence>

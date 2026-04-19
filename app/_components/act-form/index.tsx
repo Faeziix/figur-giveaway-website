@@ -1,176 +1,392 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "motion/react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
-import { useState } from "react";
-import Image from "next/image";
-import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { SectionEyebrow } from "@/app/_components/shared/section-eyebrow";
 import { Sparkles } from "@/app/_components/shared/sparkles";
-import { COUNTRIES } from "@/app/_lib/countries";
 import type { EntryFormData } from "@/app/_types";
 
-const formSchema = z.object({
-  firstName: z.string().min(1, "Required").max(80).trim(),
-  lastName: z.string().min(1, "Required").max(80).trim(),
-  email: z.string().min(1, "Required").email("Enter a valid email").toLowerCase().trim(),
-  residency: z.enum(["resident", "tourist"], { errorMap: () => ({ message: "Required" }) }),
-  nationality: z.string().min(1, "Required"),
-});
+type FieldKey = keyof EntryFormData;
 
-type FormValues = z.infer<typeof formSchema>;
+interface StepConfig {
+  field: FieldKey;
+  question: string;
+  hint?: string;
+  type: "text" | "email" | "tel" | "choice";
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  validate: (val: string) => string | undefined;
+}
+
+const STEPS: StepConfig[] = [
+  {
+    field: "firstName",
+    question: "What's your first name?",
+    type: "text",
+    placeholder: "Type here…",
+    validate: (v) => (!v.trim() ? "This field is required" : undefined),
+  },
+  {
+    field: "lastName",
+    question: "And your last name?",
+    type: "text",
+    placeholder: "Type here…",
+    validate: (v) => (!v.trim() ? "This field is required" : undefined),
+  },
+  {
+    field: "email",
+    question: "Your email address?",
+    hint: "We'll send your prize here.",
+    type: "email",
+    placeholder: "name@example.com",
+    validate: (v) => {
+      if (!v.trim()) return "This field is required";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
+      return undefined;
+    },
+  },
+  {
+    field: "phone",
+    question: "Your mobile number?",
+    hint: "International format accepted.",
+    type: "tel",
+    placeholder: "+971 50 000 0000",
+    validate: (v) => (v.trim().length < 5 ? "Please enter your mobile number" : undefined),
+  },
+  {
+    field: "residency",
+    question: "Are you based in the UAE?",
+    type: "choice",
+    options: [
+      { value: "resident", label: "UAE Resident" },
+      { value: "tourist", label: "Tourist / Visitor" },
+    ],
+    validate: (v) => (!v ? "Please choose one" : undefined),
+  },
+  {
+    field: "preferredLanguage",
+    question: "Which language do you prefer?",
+    type: "choice",
+    options: [
+      { value: "english", label: "English" },
+      { value: "arabic", label: "Arabic — عربي" },
+    ],
+    validate: (v) => (!v ? "Please choose one" : undefined),
+  },
+  {
+    field: "figurPurpose",
+    question: "What brings you to Figur?",
+    type: "choice",
+    options: [
+      { value: "personal", label: "Personal treat" },
+      { value: "gift", label: "Gift for someone" },
+      { value: "corporate", label: "Corporate gifting" },
+      { value: "occasion", label: "Special occasion" },
+      { value: "exploring", label: "Just exploring" },
+    ],
+    validate: (v) => (!v ? "Please choose one" : undefined),
+  },
+];
+
+type FormValues = Record<FieldKey, string>;
+
+const INITIAL_VALUES: FormValues = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  residency: "",
+  preferredLanguage: "",
+  figurPurpose: "",
+};
+
+const stepVariants = {
+  enter: (dir: number) => ({ y: dir > 0 ? 52 : -52, opacity: 0 }),
+  center: { y: 0, opacity: 1 },
+  exit: (dir: number) => ({ y: dir > 0 ? -52 : 52, opacity: 0 }),
+};
 
 interface ActFormProps {
   onSubmitted: (data: EntryFormData) => void;
 }
 
 export function ActForm({ onSubmitted }: ActFormProps) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
+  const [fieldError, setFieldError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(formSchema) });
+  const step = STEPS[stepIndex];
+  const isLastStep = stepIndex === STEPS.length - 1;
+  const progressPct = ((stepIndex + 1) / STEPS.length) * 100;
 
-  const onSubmit = async (values: FormValues) => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (step.type !== "choice") {
+      const t = setTimeout(() => inputRef.current?.focus(), 380);
+      return () => clearTimeout(t);
+    }
+  }, [stepIndex, step.type]);
+
+  const submit = useCallback(async (finalValues: FormValues) => {
+    setIsSubmitting(true);
     setServerError(null);
     try {
-      await axios.post("/api/check-duplicate", { email: values.email });
-      onSubmitted(values as EntryFormData);
+      await axios.post("/api/check-duplicate", { email: finalValues.email });
+      onSubmitted(finalValues as EntryFormData);
     } catch (err: any) {
-      if (err.response?.status === 409) {
-        setServerError("This email has already entered. Check your inbox for your prize.");
-      } else {
-        setServerError("Something went wrong. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
+      setServerError(
+        err.response?.status === 409
+          ? "This email has already entered. Check your inbox for your prize."
+          : "Something went wrong. Please try again."
+      );
+      setIsSubmitting(false);
     }
+  }, [onSubmitted]);
+
+  const advance = useCallback(async () => {
+    const val = values[step.field] ?? "";
+    const err = step.validate(val);
+    if (err) { setFieldError(err); return; }
+    setFieldError(undefined);
+
+    if (isLastStep) {
+      await submit(values);
+    } else {
+      setDirection(1);
+      setStepIndex((i) => i + 1);
+    }
+  }, [values, step, isLastStep, submit]);
+
+  const goBack = useCallback(() => {
+    if (stepIndex === 0) return;
+    setDirection(-1);
+    setStepIndex((i) => i - 1);
+    setFieldError(undefined);
+    setServerError(null);
+  }, [stepIndex]);
+
+  const handleChoiceSelect = useCallback((value: string) => {
+    const updated = { ...values, [step.field]: value };
+    setValues(updated);
+    setFieldError(undefined);
+
+    setTimeout(async () => {
+      if (isLastStep) {
+        await submit(updated);
+      } else {
+        setDirection(1);
+        setStepIndex((i) => i + 1);
+      }
+    }, 260);
+  }, [values, step.field, isLastStep, submit]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValues((v) => ({ ...v, [step.field]: e.target.value }));
+    setFieldError(undefined);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); advance(); }
   };
 
   return (
-    <section className="relative min-h-dvh flex flex-col items-center justify-center overflow-hidden">
-      <Sparkles count={8} />
+    <section
+      className="relative min-h-dvh flex flex-col overflow-hidden"
+      style={{ background: "oklch(0.975 0.012 60)" }}
+    >
+      <Sparkles count={6} />
 
-      <div className="relative z-10 w-full max-w-2xl">
-        <div className="flex flex-col md:flex-row gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="hidden md:flex flex-col items-center gap-4 flex-shrink-0"
-          >
-            <Image
-              src="/images/pixar/astronaut-wave.png"
-              alt="Figur astronaut welcoming you"
-              width={200}
-              height={250}
-            />
-            <p className="font-decorative italic text-[--color-ink-soft] text-xs text-center max-w-[140px] leading-relaxed">
-              "A gift awaits in Figland…"
-            </p>
-          </motion.div>
+      {/* Progress bar */}
+      <div className="relative z-10 w-full h-[3px] bg-[--color-plum]/10">
+        <motion.div
+          className="h-full bg-[--color-butter]"
+          animate={{ width: `${progressPct}%` }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        />
+      </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="flex-1 w-full"
-          >
-            <div className="bg-[--color-cream-peach] rounded-3xl p-8 space-y-8">
-              <div className="text-center space-y-3">
-                <SectionEyebrow light>Identify Yourself, Traveller</SectionEyebrow>
-                <h2
-                  className="text-[--color-plum] leading-tight tracking-[-0.03em]"
-                  style={{ fontSize: "clamp(1.75rem, 1.25rem + 2.5vw, 2.75rem)" }}
-                >
-                  Your Details
-                </h2>
-                <p className="font-body text-[--color-ink-soft] text-sm">
-                  One entry per traveller. Your prize will be sent to the email you provide.
-                </p>
-              </div>
+      {/* Top bar */}
+      <div className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-5">
+        <AnimatePresence>
+          {stepIndex > 0 && (
+            <motion.button
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.25 }}
+              onClick={goBack}
+              className="flex items-center gap-1.5 text-[--color-ink-soft] text-sm font-body hover:text-[--color-plum] transition-colors"
+            >
+              ← Back
+            </motion.button>
+          )}
+        </AnimatePresence>
+        <span className="ml-auto font-body text-[--color-ink-soft] text-xs tabular-nums">
+          <span className="text-[--color-plum-deep] font-medium">{stepIndex + 1}</span>
+          <span className="opacity-40"> / {STEPS.length}</span>
+        </span>
+      </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    id="firstName"
-                    label="First Name"
-                    placeholder="Layla"
-                    error={errors.firstName?.message}
-                    {...register("firstName")}
-                  />
-                  <Input
-                    id="lastName"
-                    label="Last Name"
-                    placeholder="Al-Rashidi"
-                    error={errors.lastName?.message}
-                    {...register("lastName")}
-                  />
+      {/* Step */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6 md:px-12">
+        <div className="w-full max-w-xl">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={stepIndex}
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-10"
+            >
+              {/* Question */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-body text-[--color-butter] text-xs tracking-[0.15em] uppercase tabular-nums">
+                    {String(stepIndex + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-[--color-butter]/50 text-xs">→</span>
                 </div>
-
-                <Input
-                  id="email"
-                  label="Email Address"
-                  type="email"
-                  placeholder="layla@example.com"
-                  error={errors.email?.message}
-                  {...register("email")}
-                />
-
-                <Select
-                  id="residency"
-                  label="I am a..."
-                  placeholder="Select one"
-                  error={errors.residency?.message}
-                  options={[
-                    { value: "resident", label: "UAE Resident" },
-                    { value: "tourist", label: "Tourist / Visitor" },
-                  ]}
-                  {...register("residency")}
-                />
-
-                <Select
-                  id="nationality"
-                  label="Nationality"
-                  placeholder="Select your nationality"
-                  error={errors.nationality?.message}
-                  options={COUNTRIES}
-                  {...register("nationality")}
-                />
-
-                {serverError && (
-                  <p className="text-sm font-body text-red-500 text-center bg-red-50 rounded-xl p-3">
-                    {serverError}
+                <h2
+                  className="font-display text-[--color-plum-deep] leading-[1.05] tracking-[-0.025em]"
+                  style={{ fontSize: "clamp(2.25rem, 1.5rem + 3.5vw, 4rem)" }}
+                >
+                  {step.question}
+                </h2>
+                {step.hint && (
+                  <p className="font-decorative italic text-[--color-ink-soft] text-base">
+                    {step.hint}
                   </p>
                 )}
+              </div>
 
-                <div className="h-px bg-gradient-to-r from-transparent via-[--color-butter]/40 to-transparent" />
+              {/* Input */}
+              {step.type !== "choice" ? (
+                <div className="space-y-10">
+                  <div className="relative pb-1">
+                    <input
+                      ref={inputRef}
+                      type={step.type}
+                      value={values[step.field]}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder={step.placeholder}
+                      autoComplete="off"
+                      className="
+                        w-full bg-transparent outline-none
+                        border-b-2 border-[--color-plum]/15 focus:border-[--color-butter]
+                        font-display text-[--color-plum-deep]
+                        text-2xl md:text-3xl pb-3
+                        placeholder:text-[--color-plum]/20
+                        transition-colors duration-300
+                      "
+                    />
+                    <AnimatePresence>
+                      {fieldError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute -bottom-6 left-0 text-xs font-body text-red-500"
+                        >
+                          {fieldError}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-                <Button
-                  type="submit"
-                  variant="butter"
-                  size="lg"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Checking…" : "Enter Figland →"}
-                </Button>
-              </form>
-
-              <p className="text-center font-body text-[--color-ink-soft] text-xs">
-                Your details are kept private. One prize per person.
-              </p>
-            </div>
-          </motion.div>
+                  <div className="flex items-center gap-4">
+                    <motion.button
+                      onClick={advance}
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-2 bg-[--color-butter] text-[--color-plum-deep] font-body font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-[--color-honey] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {isSubmitting ? "Checking…" : isLastStep ? "Submit" : "OK"}
+                      {!isSubmitting && <span>↵</span>}
+                    </motion.button>
+                    <span className="font-body text-[--color-plum]/30 text-xs">
+                      press{" "}
+                      <kbd className="font-mono bg-[--color-plum]/8 border border-[--color-plum]/10 px-1.5 py-0.5 rounded-md text-[--color-plum-deep]/50 text-[10px]">
+                        Enter
+                      </kbd>
+                    </span>
+                    {serverError && (
+                      <p className="text-sm font-body text-red-500">{serverError}</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {step.options!.map((opt, i) => {
+                    const selected = values[step.field] === opt.value;
+                    return (
+                      <motion.button
+                        key={opt.value}
+                        onClick={() => handleChoiceSelect(opt.value)}
+                        disabled={isSubmitting}
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.055, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                        whileHover={!selected ? { x: 4 } : {}}
+                        whileTap={{ scale: 0.985 }}
+                        className={`
+                          w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left
+                          transition-all duration-200 group
+                          ${selected
+                            ? "bg-[--color-butter] border-[--color-butter] shadow-sm"
+                            : "bg-white/50 border-[--color-plum]/10 hover:border-[--color-butter]/50 hover:bg-[--color-butter]/6"
+                          }
+                        `}
+                      >
+                        <span
+                          className={`
+                            w-7 h-7 rounded-lg flex items-center justify-center
+                            text-[11px] font-mono font-semibold flex-shrink-0
+                            transition-colors duration-200
+                            ${selected
+                              ? "bg-[--color-plum-deep]/15 text-[--color-plum-deep]"
+                              : "bg-[--color-plum]/8 text-[--color-plum]/50 group-hover:bg-[--color-butter]/30 group-hover:text-[--color-plum-deep]"
+                            }
+                          `}
+                        >
+                          {String.fromCharCode(65 + i)}
+                        </span>
+                        <span
+                          className={`font-body text-base transition-colors duration-200 ${
+                            selected ? "text-[--color-plum-deep] font-medium" : "text-[--color-plum-deep]/80"
+                          }`}
+                        >
+                          {opt.label}
+                        </span>
+                        {selected && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="ml-auto text-[--color-plum-deep]/50 text-sm"
+                          >
+                            ✓
+                          </motion.span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                  {serverError && (
+                    <p className="text-sm font-body text-red-500 bg-red-50 rounded-xl p-3 text-center mt-4">
+                      {serverError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </section>

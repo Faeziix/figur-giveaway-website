@@ -19,12 +19,12 @@ function discountEmailHtml(firstName: string, prize: Prize, code: string): strin
         <tr><td align="center" style="padding:48px 16px;">
           <table width="520" cellpadding="0" cellspacing="0" style="background:#660033;padding:40px 48px;">
             <tr><td align="center" style="padding-bottom:32px;">
-              <p style="margin:0;color:#C5A258;font-size:11px;letter-spacing:4px;text-transform:uppercase;font-family:Georgia,serif;">A Gift From Figland</p>
+              <p style="margin:0;color:#C5A258;font-size:11px;letter-spacing:4px;text-transform:uppercase;font-family:Georgia,serif;">A Gift From Figur</p>
               <h1 style="margin:12px 0 0;color:#FFFBF4;font-size:32px;font-weight:400;">FIGŪR</h1>
             </td></tr>
             <tr><td style="border-top:1px solid rgba(197,162,88,0.3);padding-top:32px;">
               <p style="margin:0 0 16px;color:#C5A258;font-size:12px;letter-spacing:3px;text-transform:uppercase;">Dear ${firstName},</p>
-              <p style="margin:0 0 24px;color:#FFFBF4;font-size:16px;line-height:1.6;">Your moon has been opened. Here is your prize from Figland:</p>
+              <p style="margin:0 0 24px;color:#FFFBF4;font-size:16px;line-height:1.6;">Your moon has been opened. Here is your prize from Figur:</p>
               <h2 style="margin:0 0 8px;color:#FFFBF4;font-size:22px;font-weight:400;">${prize.headline}</h2>
               <p style="margin:0 0 32px;color:rgba(255,251,244,0.6);font-size:14px;">${prize.description}</p>
               <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(197,162,88,0.4);">
@@ -56,7 +56,7 @@ function pointsEmailHtml(firstName: string, prize: Prize): string {
         <tr><td align="center" style="padding:48px 16px;">
           <table width="520" cellpadding="0" cellspacing="0" style="background:#660033;padding:40px 48px;">
             <tr><td align="center" style="padding-bottom:32px;">
-              <p style="margin:0;color:#C5A258;font-size:11px;letter-spacing:4px;text-transform:uppercase;font-family:Georgia,serif;">A Gift From Figland</p>
+              <p style="margin:0;color:#C5A258;font-size:11px;letter-spacing:4px;text-transform:uppercase;font-family:Georgia,serif;">A Gift From Figur</p>
               <h1 style="margin:12px 0 0;color:#FFFBF4;font-size:32px;font-weight:400;">FIGŪR</h1>
             </td></tr>
             <tr><td style="border-top:1px solid rgba(197,162,88,0.3);padding-top:32px;">

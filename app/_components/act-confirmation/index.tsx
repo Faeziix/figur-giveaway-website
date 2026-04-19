@@ -12,9 +12,10 @@ import type { EntryResult } from "@/app/_types";
 interface ActConfirmationProps {
   result: EntryResult;
   email: string;
+  firstName: string;
 }
 
-export function ActConfirmation({ result, email }: ActConfirmationProps) {
+export function ActConfirmation({ result, email, firstName }: ActConfirmationProps) {
   const [copied, setCopied] = useState(false);
   const { prize, code, pointsAwarded } = result;
 
@@ -58,7 +59,7 @@ export function ActConfirmation({ result, email }: ActConfirmationProps) {
         </motion.div>
 
         <div className="space-y-3">
-          <SectionEyebrow>Your Gift</SectionEyebrow>
+          <SectionEyebrow>Your Gift, {firstName}</SectionEyebrow>
           <h2
             className="text-cream leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 3vw, 3.5rem)" }}
