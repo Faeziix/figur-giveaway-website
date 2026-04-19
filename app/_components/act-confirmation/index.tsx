@@ -50,10 +50,10 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
         >
           <Image
-            src="/images/pixar/prize-reveal.png"
+            src="/images/ghibli/prize-reveal.png"
             alt="Figur astronaut with your prize"
-            width={280}
-            height={200}
+            width={320}
+            height={230}
             className="mx-auto"
           />
         </motion.div>

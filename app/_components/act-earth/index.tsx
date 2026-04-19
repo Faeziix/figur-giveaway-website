@@ -1,11 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "motion/react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SectionEyebrow } from "@/app/_components/shared/section-eyebrow";
 import { CharacterFloat } from "@/app/_components/shared/character-float";
+import { HeroTriptych } from "@/app/_components/shared/hero-triptych";
 import { Sparkles } from "@/app/_components/shared/sparkles";
+
+const UAE_HERO_IMAGES = [
+  { src: "/images/ghibli/hero-burj-khalifa.png", alt: "" },
+  { src: "/images/ghibli/hero-burj-al-arab.png", alt: "" },
+  { src: "/images/ghibli/hero-museum-future.png", alt: "" },
+];
 
 interface ActEarthProps {
   onBegin: () => void;
@@ -46,13 +53,11 @@ export function ActEarth({ onBegin }: ActEarthProps) {
           transition={{ duration: 1, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
         >
           <CharacterFloat amplitude={14} duration={3.5} rock>
-            <Image
-              src="/images/pixar/hero-scene.png"
-              alt="Figur rocket on a fig planet"
-              width={300}
-              height={400}
-              priority
-              style={{ width: "100%", maxWidth: 200, height: "auto" }}
+            <HeroTriptych
+              images={UAE_HERO_IMAGES}
+              width={280}
+              height={373}
+              interval={4000}
             />
           </CharacterFloat>
         </motion.div>

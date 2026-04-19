@@ -149,7 +149,7 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
         >
           <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
             <Image
-              src={`/images/pixar/chest-${chestIndex}.png`}
+              src={`/images/ghibli/chest-${chestIndex}.png`}
               alt={`${label} treasure chest`}
               width={96}
               height={96}
@@ -161,7 +161,7 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
             <Image
-              src={`/images/pixar/chest-open-${chestIndex}.png`}
+              src={`/images/ghibli/chest-open-${chestIndex}.png`}
               alt={`Open ${label} treasure chest`}
               width={96}
               height={96}

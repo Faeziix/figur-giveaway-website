@@ -43,7 +43,7 @@ export function ActLiftoff() {
         >
           <CharacterFloat amplitude={16} duration={2.8} rock>
             <Image
-              src="/images/pixar/rocket-flight.png"
+              src="/images/ghibli/rocket-flight.png"
               alt="Figur rocket ascending through the Solar Fig universe"
               width={240}
               height={320}
