@@ -88,15 +88,16 @@ Key rules:
 - `POST /api/check-duplicate` — checks email uniqueness in Airtable before form advance
 - `POST /api/entry` — validate → dedupe → award → Airtable write → Shopify code → Resend email → set cookie → return result
 - Airtable base: set via `AIRTABLE_BASE_ID` env var; PAT via `AIRTABLE_PAT`
-- Shopify: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_API_TOKEN` (needs `write_discounts` scope)
+- Shopify: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET` — uses client credentials grant to obtain short-lived tokens (needs `write_discounts` scope)
 - Resend: `RESEND_API_KEY`, sending from `noreply@figur.ae`
 
 ## Environment Variables Required
 ```
 AIRTABLE_PAT=
 AIRTABLE_BASE_ID=
-SHOPIFY_STORE_DOMAIN=figur-7317.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=
+SHOPIFY_STORE_DOMAIN=figur.ae
+SHOPIFY_CLIENT_ID=
+SHOPIFY_CLIENT_SECRET=
 RESEND_API_KEY=
 POSTHOG_KEY=
 POSTHOG_HOST=https://app.posthog.com

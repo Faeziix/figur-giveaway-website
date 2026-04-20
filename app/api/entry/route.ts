@@ -1,18 +1,112 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrizeById } from "@/app/_lib/prize-catalog";
+import { entrySchema } from "@/app/_lib/validators";
+import { findEntryByEmail, createEntry } from "@/app/_lib/airtable";
+import { createDiscountCode } from "@/app/_lib/shopify";
+import { sendPrizeEmail } from "@/app/_lib/resend";
+import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
+import { getPostHogClient } from "@/app/_lib/posthog-server";
 import type { EntryResult } from "@/app/_types";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const prizeId = body.prizeId ?? 1;
-  const prize = getPrizeById(prizeId) ?? getPrizeById(1)!;
+  try {
+    const body = await req.json();
+    const parsed = entrySchema.safeParse(body);
 
-  const result: EntryResult = {
-    prize,
-    code: prize.type === "discount" ? "FIGUR-DEMO" : undefined,
-    pointsAwarded: prize.pointsAwarded,
-    alreadyClaimed: false,
-  };
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
+        { status: 422 }
+      );
+    }
 
-  return NextResponse.json(result, { status: 201 });
+    const { prizeId: clientPrizeId, ...fields } = parsed.data;
+
+    const posthog = getPostHogClient();
+
+    const existing = await findEntryByEmail(fields.email);
+    if (existing) {
+      posthog.capture({
+        distinctId: fields.email,
+        event: "entry_already_claimed",
+        properties: { email: fields.email },
+      });
+      await posthog.shutdown();
+      const result: EntryResult = {
+        prize: getPrizeById(1)!,
+        alreadyClaimed: true,
+      };
+      return NextResponse.json(result, { status: 200 });
+    }
+
+    const prizeId = clientPrizeId ?? getRandomPrizeId();
+    const prize = getPrizeById(prizeId) ?? getPrizeById(getRandomPrizeId())!;
+
+    let code: string | null = null;
+    if (prize.type === "discount" && prize.discountPercent) {
+      code = await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle);
+    }
+
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      "unknown";
+
+    await createEntry(fields, prize, code, ip);
+
+    await sendPrizeEmail(fields.email, fields.firstName, prize, code);
+
+    const result: EntryResult = {
+      prize,
+      code: code ?? undefined,
+      pointsAwarded: prize.pointsAwarded,
+      alreadyClaimed: false,
+    };
+
+    posthog.identify({
+      distinctId: fields.email,
+      properties: {
+        email: fields.email,
+        first_name: fields.firstName,
+        last_name: fields.lastName,
+        residency: fields.residency,
+        preferred_language: fields.preferredLanguage,
+        figur_purpose: fields.figurPurpose,
+      },
+    });
+    posthog.capture({
+      distinctId: fields.email,
+      event: "entry_submitted",
+      properties: {
+        prize_id: prize.id,
+        prize_type: prize.type,
+        residency: fields.residency,
+        preferred_language: fields.preferredLanguage,
+        figur_purpose: fields.figurPurpose,
+        has_discount_code: !!code,
+      },
+    });
+    await posthog.shutdown();
+
+    const response = NextResponse.json(result, { status: 201 });
+    response.cookies.set("figur_entry", fields.email, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 90,
+      path: "/",
+      sameSite: "lax",
+    });
+
+    return response;
+  } catch (err) {
+    console.error("[/api/entry]", err);
+    try {
+      const posthog = getPostHogClient();
+      posthog.capture({
+        distinctId: "anonymous",
+        event: "entry_api_error",
+        properties: { error: String(err) },
+      });
+      await posthog.shutdown();
+    } catch {}
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -18,6 +18,7 @@ export interface Prize {
   value: string;
   pointsAwarded?: number;
   discountPercent?: number;
+  shopifyProductHandle?: string;
 }
 
 export interface EntryResult {
