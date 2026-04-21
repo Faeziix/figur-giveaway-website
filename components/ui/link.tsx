@@ -5,9 +5,9 @@ import { cn } from "@/lib/cn";
 const linkVariants = cva("transition-colors duration-200 cursor-pointer", {
   variants: {
     variant: {
-      default: "text-[--color-accent] hover:text-[--color-accent-light] underline underline-offset-4",
-      nav: "text-[--color-text-inverse] hover:text-[--color-accent] no-underline font-decorative tracking-widest uppercase text-sm",
-      ghost: "text-[--color-text-muted] hover:text-[--color-text] no-underline",
+      default: "text-accent hover:text-accent-light underline underline-offset-4",
+      nav: "text-text-inverse hover:text-accent no-underline font-decorative tracking-widest uppercase text-sm",
+      ghost: "text-text-muted hover:text-text no-underline",
     },
   },
   defaultVariants: { variant: "default" },

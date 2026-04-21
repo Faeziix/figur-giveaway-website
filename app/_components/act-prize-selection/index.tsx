@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import axios from "axios";
+import posthog from "posthog-js";
 import { SectionEyebrow } from "@/app/_components/shared/section-eyebrow";
 import { Sparkles } from "@/app/_components/shared/sparkles";
 import { PRIZES } from "@/app/_lib/prize-catalog";
@@ -24,6 +25,15 @@ interface ActPrizeSelectionProps {
 }
 
 export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionProps) {
+  const shuffledPrizes = useMemo(() => {
+    const copy = [...PRIZES];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }, []);
+
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -34,6 +44,9 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
     setSelectedId(prizeId);
     setIsRevealing(true);
 
+    const chestLabel = CHEST_LABELS[PRIZES.findIndex((p) => p.id === prizeId)];
+    posthog.capture("chest_selected", { prize_id: prizeId, chest_label: chestLabel });
+
     try {
       const { data } = await axios.post<EntryResult>("/api/entry", {
         ...formData,
@@ -43,7 +56,9 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
         setRevealed(true);
         setTimeout(() => onRevealed(data), 1400);
       }, 900);
-    } catch {
+    } catch (err) {
+      posthog.captureException(err);
+      posthog.capture("chest_selection_error", { prize_id: prizeId });
       setError("Something went wrong. Please refresh and try again.");
       setSelectedId(null);
       setIsRevealing(false);
@@ -51,10 +66,10 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
   };
 
   return (
-    <section className="relative min-h-dvh flex flex-col items-center justify-center overflow-hidden bg-[--color-cream]">
+    <section className="relative min-h-dvh flex flex-col items-center justify-center overflow-hidden bg-cream">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[--color-cream-peach] to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-cream-peach to-transparent"
       />
       <Sparkles count={12} />
 
@@ -67,18 +82,18 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
         >
           <SectionEyebrow light>Your Gift Awaits</SectionEyebrow>
           <h2
-            className="text-[--color-plum-deep] leading-tight tracking-[-0.03em]"
+            className="text-plum-deep leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 3vw, 3.5rem)" }}
           >
             Pick a Chest
           </h2>
-          <p className="font-body text-[--color-ink-soft] text-sm">
+          <p className="font-body text-ink-soft text-sm">
             One chest holds your treasure. Choose wisely.
           </p>
         </motion.div>
 
         <div className="grid grid-cols-3 gap-5 w-full">
-          {PRIZES.map((prize, i) => {
+          {shuffledPrizes.map((prize, i) => {
             const isSelected = selectedId === prize.id;
             const isOther = selectedId !== null && !isSelected;
 
@@ -136,18 +151,20 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
         onClick={onPick}
         disabled={isDisabled}
         aria-label={`${label} Chest`}
-        className="relative cursor-pointer disabled:cursor-default focus:outline-none focus-visible:ring-4 focus-visible:ring-[--color-butter]/50 rounded-2xl"
+        className="relative cursor-pointer disabled:cursor-default outline-none rounded-2xl"
         whileHover={!isDisabled && !isSelected ? { y: -6, rotate: 1 } : {}}
         transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-        style={{ width: 96, height: 96, perspective: "600px" }}
+        style={{ width: 96, height: 96 }}
       >
-        <motion.div
-          className="relative w-full h-full"
-          style={{ transformStyle: "preserve-3d" }}
-          animate={{ rotateY: isRevealed ? 180 : 0 }}
-          transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
-        >
-          <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative", perspective: "400px" }}>
+          <div
+            style={{
+              position: "absolute", inset: 0,
+              transition: "transform 0.3s ease-in, opacity 0.3s ease-in",
+              transform: isRevealed ? "rotateY(90deg)" : "rotateY(0deg)",
+              opacity: isRevealed ? 0 : 1,
+            }}
+          >
             <Image
               src={`/images/ghibli/chest-${chestIndex}.png`}
               alt={`${label} treasure chest`}
@@ -157,8 +174,12 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
             />
           </div>
           <div
-            className="absolute inset-0"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            style={{
+              position: "absolute", inset: 0,
+              transition: "transform 0.3s ease-out 0.3s, opacity 0.3s ease-out 0.3s",
+              transform: isRevealed ? "rotateY(0deg)" : "rotateY(-90deg)",
+              opacity: isRevealed ? 1 : 0,
+            }}
           >
             <Image
               src={`/images/ghibli/chest-open-${chestIndex}.png`}
@@ -168,17 +189,10 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
-        </motion.div>
+        </div>
 
-        {isSelected && !isRevealed && (
-          <motion.div
-            className="absolute inset-0 rounded-2xl ring-4 ring-[--color-butter]"
-            animate={{ opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 0.8, repeat: Infinity }}
-          />
-        )}
       </motion.button>
-      <span className="font-body text-[--color-ink-soft] text-xs">{label}</span>
+      <span className="font-body text-ink-soft text-xs">{label}</span>
     </div>
   );
 }

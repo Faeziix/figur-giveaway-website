@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { entrySchema } from "@/app/_lib/validators";
-import { findEntryByEmail, createEntry } from "@/app/_lib/airtable";
+import { findEntryByEmail, findEntryByPhone, findEntryByIP, createEntry } from "@/app/_lib/airtable";
 import { createDiscountCode } from "@/app/_lib/shopify";
 import { sendPrizeEmail } from "@/app/_lib/resend";
 import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
@@ -23,18 +23,36 @@ export async function POST(req: NextRequest) {
 
     const posthog = getPostHogClient();
 
-    const existing = await findEntryByEmail(fields.email);
-    if (existing) {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      "unknown";
+
+    const cookieEntry = req.cookies.get("figur_entry")?.value;
+
+    const [existingByCookie, existingByEmail, existingByPhone, existingByIP] = await Promise.all([
+      cookieEntry ? findEntryByEmail(cookieEntry) : Promise.resolve(null),
+      findEntryByEmail(fields.email),
+      findEntryByPhone(fields.phone),
+      ip !== "unknown" ? findEntryByIP(ip) : Promise.resolve(null),
+    ]);
+
+    const alreadyClaimed = !!(existingByCookie || existingByEmail || existingByPhone || existingByIP);
+
+    if (alreadyClaimed) {
       posthog.capture({
         distinctId: fields.email,
         event: "entry_already_claimed",
-        properties: { email: fields.email },
+        properties: {
+          email: fields.email,
+          matched_cookie: !!existingByCookie,
+          matched_email: !!existingByEmail,
+          matched_phone: !!existingByPhone,
+          matched_ip: !!existingByIP,
+        },
       });
       await posthog.shutdown();
-      const result: EntryResult = {
-        prize: getPrizeById(1)!,
-        alreadyClaimed: true,
-      };
+      const result: EntryResult = { alreadyClaimed: true };
       return NextResponse.json(result, { status: 200 });
     }
 
@@ -45,11 +63,6 @@ export async function POST(req: NextRequest) {
     if (prize.type === "discount" && prize.discountPercent) {
       code = await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle);
     }
-
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      req.headers.get("x-real-ip") ??
-      "unknown";
 
     await createEntry(fields, prize, code, ip);
 

@@ -58,12 +58,12 @@ export function ActLiftoff() {
           className="space-y-3"
         >
           <h2
-            className="text-[--color-cream] leading-tight tracking-[-0.03em]"
+            className="text-cream leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 4vw, 4.5rem)" }}
           >
             Bound for Figur
           </h2>
-          <p className="font-body text-[--color-cream]/60 text-sm max-w-xs mx-auto">
+          <p className="font-body text-cream/60 text-sm max-w-xs mx-auto">
             The fig-rocket ascends through the stars.
           </p>
         </motion.div>

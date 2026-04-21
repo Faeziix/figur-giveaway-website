@@ -67,7 +67,7 @@ export async function createDiscountCode(
   });
 
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const code = `FIGUR-${prizeId}-${random}`;
+  const code = `FIGUR-${discountPercent}OFF-${random}`;
 
   const now = new Date().toISOString();
   const expiry = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString();
@@ -80,7 +80,7 @@ export async function createDiscountCode(
   const { data, errors } = await client.request(CREATE_DISCOUNT_MUTATION, {
     variables: {
       basicCodeDiscount: {
-        title: `Giveaway Prize ${prizeId} — ${code}`,
+        title: `Giveaway ${discountPercent}% Off — ${code}`,
         code,
         startsAt: now,
         endsAt: expiry,

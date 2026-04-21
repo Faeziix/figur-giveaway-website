@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import axios from "axios";
+import posthog from "posthog-js";
 import { Sparkles } from "@/app/_components/shared/sparkles";
 import type { EntryFormData } from "@/app/_types";
 
@@ -116,7 +116,6 @@ export function ActForm({ onSubmitted }: ActFormProps) {
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
   const [fieldError, setFieldError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const step = STEPS[stepIndex];
@@ -125,40 +124,42 @@ export function ActForm({ onSubmitted }: ActFormProps) {
 
   useEffect(() => {
     if (step.type !== "choice") {
-      const t = setTimeout(() => inputRef.current?.focus(), 380);
+      const t = setTimeout(() => inputRef.current?.focus(), 460);
       return () => clearTimeout(t);
     }
   }, [stepIndex, step.type]);
 
-  const submit = useCallback(async (finalValues: FormValues) => {
-    setIsSubmitting(true);
-    setServerError(null);
-    try {
-      await axios.post("/api/check-duplicate", { email: finalValues.email });
-      onSubmitted(finalValues as EntryFormData);
-    } catch (err: any) {
-      setServerError(
-        err.response?.status === 409
-          ? "This email has already entered. Check your inbox for your prize."
-          : "Something went wrong. Please try again."
-      );
-      setIsSubmitting(false);
-    }
+  const submit = useCallback((finalValues: FormValues) => {
+    posthog.identify(finalValues.email, {
+      email: finalValues.email,
+      first_name: finalValues.firstName,
+      last_name: finalValues.lastName,
+      residency: finalValues.residency,
+      preferred_language: finalValues.preferredLanguage,
+      figur_purpose: finalValues.figurPurpose,
+    });
+    posthog.capture("form_submitted", {
+      residency: finalValues.residency,
+      preferred_language: finalValues.preferredLanguage,
+      figur_purpose: finalValues.figurPurpose,
+    });
+    onSubmitted(finalValues as EntryFormData);
   }, [onSubmitted]);
 
-  const advance = useCallback(async () => {
+  const advance = useCallback(() => {
     const val = values[step.field] ?? "";
     const err = step.validate(val);
     if (err) { setFieldError(err); return; }
     setFieldError(undefined);
 
     if (isLastStep) {
-      await submit(values);
+      submit(values);
     } else {
+      posthog.capture("form_step_completed", { step_index: stepIndex, field: step.field });
       setDirection(1);
       setStepIndex((i) => i + 1);
     }
-  }, [values, step, isLastStep, submit]);
+  }, [values, step, stepIndex, isLastStep, submit]);
 
   const goBack = useCallback(() => {
     if (stepIndex === 0) return;
@@ -173,15 +174,16 @@ export function ActForm({ onSubmitted }: ActFormProps) {
     setValues(updated);
     setFieldError(undefined);
 
-    setTimeout(async () => {
+    setTimeout(() => {
       if (isLastStep) {
-        await submit(updated);
+        submit(updated);
       } else {
+        posthog.capture("form_step_completed", { step_index: stepIndex, field: step.field });
         setDirection(1);
         setStepIndex((i) => i + 1);
       }
     }, 260);
-  }, [values, step.field, isLastStep, submit]);
+  }, [values, step.field, stepIndex, isLastStep, submit]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValues((v) => ({ ...v, [step.field]: e.target.value }));
@@ -200,9 +202,9 @@ export function ActForm({ onSubmitted }: ActFormProps) {
       <Sparkles count={6} />
 
       {/* Progress bar */}
-      <div className="relative z-10 w-full h-[3px] bg-[--color-plum]/10">
+      <div className="relative z-10 w-full h-[3px] bg-plum/10">
         <motion.div
-          className="h-full bg-[--color-butter]"
+          className="h-full bg-butter"
           animate={{ width: `${progressPct}%` }}
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         />
@@ -218,14 +220,14 @@ export function ActForm({ onSubmitted }: ActFormProps) {
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.25 }}
               onClick={goBack}
-              className="flex items-center gap-1.5 text-[--color-ink-soft] text-sm font-body hover:text-[--color-plum] transition-colors"
+              className="flex items-center gap-1.5 text-ink-soft text-sm font-body hover:text-plum transition-colors"
             >
               ← Back
             </motion.button>
           )}
         </AnimatePresence>
-        <span className="ml-auto font-body text-[--color-ink-soft] text-xs tabular-nums">
-          <span className="text-[--color-plum-deep] font-medium">{stepIndex + 1}</span>
+        <span className="ml-auto font-body text-ink-soft text-xs tabular-nums">
+          <span className="text-plum-deep font-medium">{stepIndex + 1}</span>
           <span className="opacity-40"> / {STEPS.length}</span>
         </span>
       </div>
@@ -247,19 +249,19 @@ export function ActForm({ onSubmitted }: ActFormProps) {
               {/* Question */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-body text-[--color-butter] text-xs tracking-[0.15em] uppercase tabular-nums">
+                  <span className="font-body text-butter text-xs tracking-[0.15em] uppercase tabular-nums">
                     {String(stepIndex + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-[--color-butter]/50 text-xs">→</span>
+                  <span className="text-butter/50 text-xs">→</span>
                 </div>
                 <h2
-                  className="font-display text-[--color-plum-deep] leading-[1.05] tracking-[-0.025em]"
+                  className="font-display text-plum-deep leading-[1.05] tracking-[-0.025em]"
                   style={{ fontSize: "clamp(2.25rem, 1.5rem + 3.5vw, 4rem)" }}
                 >
                   {step.question}
                 </h2>
                 {step.hint && (
-                  <p className="font-decorative italic text-[--color-ink-soft] text-base">
+                  <p className="font-decorative italic text-ink-soft text-base">
                     {step.hint}
                   </p>
                 )}
@@ -279,10 +281,10 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                       autoComplete="off"
                       className="
                         w-full bg-transparent outline-none
-                        border-b-2 border-[--color-plum]/15 focus:border-[--color-butter]
-                        font-display text-[--color-plum-deep]
+                        border-b-2 border-plum/15 focus:border-butter
+                        font-display text-plum-deep
                         text-2xl md:text-3xl pb-3
-                        placeholder:text-[--color-plum]/20
+                        placeholder:text-plum/20
                         transition-colors duration-300
                       "
                     />
@@ -303,21 +305,13 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                   <div className="flex items-center gap-4">
                     <motion.button
                       onClick={advance}
-                      disabled={isSubmitting}
-                      className="inline-flex items-center gap-2 bg-[--color-butter] text-[--color-plum-deep] font-body font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-[--color-honey] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 bg-plum text-cream font-body font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-plum-deep transition-colors"
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       transition={{ duration: 0.15 }}
                     >
-                      {isSubmitting ? "Checking…" : isLastStep ? "Submit" : "OK"}
-                      {!isSubmitting && <span>↵</span>}
+                      {isLastStep ? "Submit" : "Next →"}
                     </motion.button>
-                    <span className="font-body text-[--color-plum]/30 text-xs">
-                      press{" "}
-                      <kbd className="font-mono bg-[--color-plum]/8 border border-[--color-plum]/10 px-1.5 py-0.5 rounded-md text-[--color-plum-deep]/50 text-[10px]">
-                        Enter
-                      </kbd>
-                    </span>
                     {serverError && (
                       <p className="text-sm font-body text-red-500">{serverError}</p>
                     )}
@@ -331,7 +325,6 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                       <motion.button
                         key={opt.value}
                         onClick={() => handleChoiceSelect(opt.value)}
-                        disabled={isSubmitting}
                         initial={{ opacity: 0, x: -16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.055, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -341,8 +334,8 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                           w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left
                           transition-all duration-200 group
                           ${selected
-                            ? "bg-[--color-butter] border-[--color-butter] shadow-sm"
-                            : "bg-white/50 border-[--color-plum]/10 hover:border-[--color-butter]/50 hover:bg-[--color-butter]/6"
+                            ? "bg-butter border-butter shadow-sm"
+                            : "bg-white/50 border-plum/10 hover:border-butter/50 hover:bg-butter/6"
                           }
                         `}
                       >
@@ -352,8 +345,8 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                             text-[11px] font-mono font-semibold flex-shrink-0
                             transition-colors duration-200
                             ${selected
-                              ? "bg-[--color-plum-deep]/15 text-[--color-plum-deep]"
-                              : "bg-[--color-plum]/8 text-[--color-plum]/50 group-hover:bg-[--color-butter]/30 group-hover:text-[--color-plum-deep]"
+                              ? "bg-plum-deep/15 text-plum-deep"
+                              : "bg-plum/8 text-plum/50 group-hover:bg-butter/30 group-hover:text-plum-deep"
                             }
                           `}
                         >
@@ -361,7 +354,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                         </span>
                         <span
                           className={`font-body text-base transition-colors duration-200 ${
-                            selected ? "text-[--color-plum-deep] font-medium" : "text-[--color-plum-deep]/80"
+                            selected ? "text-plum-deep font-medium" : "text-plum-deep/80"
                           }`}
                         >
                           {opt.label}
@@ -370,7 +363,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                           <motion.span
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="ml-auto text-[--color-plum-deep]/50 text-sm"
+                            className="ml-auto text-plum-deep/50 text-sm"
                           >
                             ✓
                           </motion.span>

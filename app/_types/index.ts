@@ -22,7 +22,7 @@ export interface Prize {
 }
 
 export interface EntryResult {
-  prize: Prize;
+  prize?: Prize;
   code?: string;
   pointsAwarded?: number;
   alreadyClaimed: boolean;

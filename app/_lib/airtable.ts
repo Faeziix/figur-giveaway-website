@@ -37,6 +37,29 @@ export async function findEntryByEmail(email: string) {
   return records.length > 0 ? records[0] : null;
 }
 
+export async function findEntryByPhone(phone: string) {
+  const normalized = phone.replace(/\s+/g, "");
+  const records = await base(TABLE)
+    .select({
+      filterByFormula: `SUBSTITUTE({Phone}, " ", "") = "${normalized.replace(/"/g, '\\"')}"`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  return records.length > 0 ? records[0] : null;
+}
+
+export async function findEntryByIP(ip: string) {
+  const records = await base(TABLE)
+    .select({
+      filterByFormula: `{IP} = "${ip.replace(/"/g, '\\"')}"`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  return records.length > 0 ? records[0] : null;
+}
+
 export async function createEntry(
   payload: Omit<EntryPayload, "prizeId">,
   prize: Prize,
@@ -44,6 +67,7 @@ export async function createEntry(
   ip: string
 ) {
   const record = await base(TABLE).create({
+    "Name": `${payload.firstName} ${payload.lastName}`,
     "First Name": payload.firstName,
     "Last Name": payload.lastName,
     "Email": payload.email,
