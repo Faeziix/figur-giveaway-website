@@ -33,7 +33,7 @@ export function ActEarth({ onBegin }: ActEarthProps) {
 
       <Sparkles count={10} />
 
-      <div className="relative z-10 flex flex-col items-center gap-8 text-center px-6 max-w-2xl w-full">
+      <div className="relative z-10 flex flex-col items-center gap-8 text-center px-6 py-8 max-w-2xl w-full">
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
