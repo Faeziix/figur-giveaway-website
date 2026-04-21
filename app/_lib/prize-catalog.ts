@@ -11,11 +11,11 @@ export const PRIZES: Prize[] = [
   },
   {
     id: 2,
-    type: "discount",
-    headline: "20% Off Your Order",
-    description: "20% off your entire order — treat yourself to something extraordinary.",
-    value: "20% off your order",
-    discountPercent: 20,
+    type: "points",
+    headline: "2,000 Figur Points",
+    description: "2,000 loyalty points added to your account — redeemable on your next order.",
+    value: "2,000 loyalty points",
+    pointsAwarded: 2000,
   },
   {
     id: 3,
@@ -27,11 +27,11 @@ export const PRIZES: Prize[] = [
   },
   {
     id: 4,
-    type: "discount",
-    headline: "30% Off Your Order",
-    description: "30% off your entire order — a generous reward from Figur.",
-    value: "30% off your order",
-    discountPercent: 30,
+    type: "points",
+    headline: "5,000 Figur Points",
+    description: "5,000 loyalty points added to your account — a grand reward from Figur.",
+    value: "5,000 loyalty points",
+    pointsAwarded: 5000,
   },
   {
     id: 5,
