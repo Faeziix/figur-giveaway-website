@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const alreadyClaimed = !!(existingByCookie || existingByEmail || existingByPhone || existingByIP);
 
     if (alreadyClaimed) {
-      posthog.capture({
+      posthog?.capture({
         distinctId: fields.email,
         event: "entry_already_claimed",
         properties: {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
           matched_ip: !!existingByIP,
         },
       });
-      await posthog.shutdown();
+      await posthog?.shutdown();
       const result: EntryResult = { alreadyClaimed: true };
       return NextResponse.json(result, { status: 200 });
     }
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       alreadyClaimed: false,
     };
 
-    posthog.identify({
+    posthog?.identify({
       distinctId: fields.email,
       properties: {
         email: fields.email,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         figur_purpose: fields.figurPurpose,
       },
     });
-    posthog.capture({
+    posthog?.capture({
       distinctId: fields.email,
       event: "entry_submitted",
       properties: {
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         has_discount_code: !!code,
       },
     });
-    await posthog.shutdown();
+    await posthog?.shutdown();
 
     const response = NextResponse.json(result, { status: 201 });
     response.cookies.set("figur_entry", fields.email, {
@@ -113,12 +113,12 @@ export async function POST(req: NextRequest) {
     console.error("[/api/entry]", err);
     try {
       const posthog = getPostHogClient();
-      posthog.capture({
+      posthog?.capture({
         distinctId: "anonymous",
         event: "entry_api_error",
         properties: { error: String(err) },
       });
-      await posthog.shutdown();
+      await posthog?.shutdown();
     } catch {}
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
