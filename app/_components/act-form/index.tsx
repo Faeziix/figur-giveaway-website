@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import posthog from "posthog-js";
 import { Sparkles } from "@/app/_components/shared/sparkles";
+import { PhoneInput } from "@/app/_components/shared/phone-input";
 import type { EntryFormData } from "@/app/_types";
 
 type FieldKey = keyof EntryFormData;
@@ -12,7 +13,7 @@ interface StepConfig {
   field: FieldKey;
   question: string;
   hint?: string;
-  type: "text" | "email" | "tel" | "choice";
+  type: "text" | "email" | "tel" | "phone" | "choice";
   placeholder?: string;
   options?: { value: string; label: string }[];
   validate: (val: string) => string | undefined;
@@ -48,10 +49,9 @@ const STEPS: StepConfig[] = [
   {
     field: "phone",
     question: "Your mobile number?",
-    hint: "International format accepted.",
-    type: "tel",
-    placeholder: "+971 50 000 0000",
-    validate: (v) => (v.trim().length < 5 ? "Please enter your mobile number" : undefined),
+    hint: "Select your country code, then type your number.",
+    type: "phone",
+    validate: (v) => (v.replace(/\D/g, "").length < 7 ? "Please enter your mobile number" : undefined),
   },
   {
     field: "residency",
@@ -123,7 +123,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
   const progressPct = ((stepIndex + 1) / STEPS.length) * 100;
 
   useEffect(() => {
-    if (step.type !== "choice") {
+    if (step.type !== "choice" && step.type !== "phone") {
       const t = setTimeout(() => inputRef.current?.focus(), 460);
       return () => clearTimeout(t);
     }
@@ -271,35 +271,46 @@ export function ActForm({ onSubmitted }: ActFormProps) {
               {step.type !== "choice" ? (
                 <div className="space-y-10">
                   <div className="relative pb-1">
-                    <input
-                      ref={inputRef}
-                      type={step.type}
-                      value={values[step.field]}
-                      onChange={handleInputChange}
-                      onKeyDown={handleKeyDown}
-                      placeholder={step.placeholder}
-                      autoComplete="off"
-                      className="
-                        w-full bg-transparent outline-none
-                        border-b-2 border-plum/15 focus:border-butter
-                        font-display text-plum-deep
-                        text-2xl md:text-3xl pb-3
-                        placeholder:text-plum/20
-                        transition-colors duration-300
-                      "
-                    />
-                    <AnimatePresence>
-                      {fieldError && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="absolute -bottom-6 left-0 text-xs font-body text-red-500"
-                        >
-                          {fieldError}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
+                    {step.type === "phone" ? (
+                      <PhoneInput
+                        value={values[step.field]}
+                        onChange={(v) => { setValues((prev) => ({ ...prev, phone: v })); setFieldError(undefined); }}
+                        onKeyDown={handleKeyDown}
+                        error={fieldError}
+                      />
+                    ) : (
+                      <>
+                        <input
+                          ref={inputRef}
+                          type={step.type}
+                          value={values[step.field]}
+                          onChange={handleInputChange}
+                          onKeyDown={handleKeyDown}
+                          placeholder={step.placeholder}
+                          autoComplete="off"
+                          className="
+                            w-full bg-transparent outline-none
+                            border-b-2 border-plum/15 focus:border-butter
+                            font-display text-plum-deep
+                            text-2xl md:text-3xl pb-3
+                            placeholder:text-plum/20
+                            transition-colors duration-300
+                          "
+                        />
+                        <AnimatePresence>
+                          {fieldError && (
+                            <motion.p
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="absolute -bottom-6 left-0 text-xs font-body text-red-500"
+                            >
+                              {fieldError}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4">
