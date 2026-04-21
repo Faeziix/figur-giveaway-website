@@ -55,7 +55,7 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
       setTimeout(() => {
         setRevealed(true);
         setTimeout(() => onRevealed(data), 1400);
-      }, 900);
+      }, 2500);
     } catch (err) {
       posthog.captureException(err);
       posthog.capture("chest_selection_error", { prize_id: prizeId });
@@ -153,7 +153,16 @@ function TreasureChest({ prizeId, chestIndex, label, isSelected, isRevealed, isD
         aria-label={`${label} Chest`}
         className="relative cursor-pointer disabled:cursor-default outline-none rounded-2xl"
         whileHover={!isDisabled && !isSelected ? { y: -6, rotate: 1 } : {}}
-        transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+        animate={
+          isSelected && !isRevealed
+            ? { x: [0, -4, 4, -4, 4, 0, 0, 0, 0, 0] }
+            : { x: 0 }
+        }
+        transition={
+          isSelected && !isRevealed
+            ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }
+        }
         style={{ width: 96, height: 96 }}
       >
         <div style={{ width: "100%", height: "100%", position: "relative", perspective: "400px" }}>
