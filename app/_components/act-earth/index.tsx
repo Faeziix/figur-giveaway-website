@@ -73,7 +73,7 @@ export function ActEarth({ onBegin }: ActEarthProps) {
             className="text-plum-deep leading-[1.0] tracking-[-0.04em] mb-4"
             style={{ fontSize: "clamp(3rem, 2rem + 6vw, 7rem)" }}
           >
-            A Gift From<br />Figur
+            A Gift From<br />Figùr
           </h1>
           <p className="font-body text-ink-soft text-base max-w-sm mx-auto leading-relaxed">
             Answer a few questions. Pick your chest. Claim your treasure.

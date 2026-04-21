@@ -61,7 +61,7 @@ export function ActLiftoff() {
             className="text-cream leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 4vw, 4.5rem)" }}
           >
-            Bound for Figur
+            Bound for Figùr
           </h2>
           <p className="font-body text-cream/60 text-sm max-w-xs mx-auto">
             The fig-rocket ascends through the stars.

@@ -135,7 +135,7 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
           ) : (
             <>
               <p className="font-body text-butter/70 text-xs tracking-widest uppercase">
-                Figur Loyalty Points
+                Figùr Loyalty Points
               </p>
               <div
                 className="font-display text-6xl text-butter"
@@ -144,7 +144,7 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
                 {pointsAwarded}
               </div>
               <p className="font-body text-cream/50 text-sm">
-                Points banked to your Figur account.
+                Points banked to your Figùr account.
               </p>
               <p className="font-body text-cream/30 text-xs">
                 Confirmation sent to {email}

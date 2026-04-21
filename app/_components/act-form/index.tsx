@@ -75,7 +75,7 @@ const STEPS: StepConfig[] = [
   },
   {
     field: "figurPurpose",
-    question: "What brings you to Figur?",
+    question: "What brings you to Figùr?",
     type: "choice",
     options: [
       { value: "personal", label: "Personal treat" },
