@@ -21,10 +21,11 @@ const CHEST_LABELS = [
 
 interface ActPrizeSelectionProps {
   formData: EntryFormData;
+  selectedPrizeId: number;
   onRevealed: (result: EntryResult) => void;
 }
 
-export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionProps) {
+export function ActPrizeSelection({ formData, selectedPrizeId, onRevealed }: ActPrizeSelectionProps) {
   const shuffledPrizes = useMemo(() => {
     const copy = [...PRIZES];
     for (let i = copy.length - 1; i > 0; i--) {
@@ -49,7 +50,7 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
     posthog.capture("chest_selected", { prize_id: prizeId, chest_label: chestLabel });
 
     try {
-      const { data } = await axios.post<EntryResult>("/api/entry", { ...formData, prizeId });
+      const { data } = await axios.post<EntryResult>("/api/entry", { ...formData, prizeId: selectedPrizeId });
       pendingResult.current = data;
       setRevealed(true);
     } catch (err) {

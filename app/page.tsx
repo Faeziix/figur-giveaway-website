@@ -8,12 +8,14 @@ import { ActLiftoff } from "@/app/_components/act-liftoff";
 import { ActForm } from "@/app/_components/act-form";
 import { ActPrizeSelection } from "@/app/_components/act-prize-selection";
 import { ActConfirmation } from "@/app/_components/act-confirmation";
+import { getRandomPrizeId } from "@/app/_lib/prize-catalog";
 import type { EntryFormData, EntryResult, JourneyAct } from "@/app/_types";
 
 
 export default function GiveawayPage() {
   const [act, setAct] = useState<JourneyAct>("earth");
   const [formData, setFormData] = useState<EntryFormData | null>(null);
+  const [selectedPrizeId, setSelectedPrizeId] = useState<number | null>(null);
   const [result, setResult] = useState<EntryResult | null>(null);
 
   const advance = (next: JourneyAct) => setAct(next);
@@ -36,6 +38,7 @@ export default function GiveawayPage() {
             <ActForm
               onSubmitted={(data) => {
                 setFormData(data);
+                setSelectedPrizeId(getRandomPrizeId());
                 axios.post("/api/sync-customer", data).catch((err) =>
                   console.error("[sync-customer]", err)
                 );
@@ -48,9 +51,10 @@ export default function GiveawayPage() {
             <ActLiftoffWithAuto onDone={() => advance("prize-selection")} />
           )}
 
-          {act === "prize-selection" && formData && (
+          {act === "prize-selection" && formData && selectedPrizeId && (
             <ActPrizeSelection
               formData={formData}
+              selectedPrizeId={selectedPrizeId}
               onRevealed={(res) => {
                 setResult(res);
                 advance("confirmation");
