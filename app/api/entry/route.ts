@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const prize = getPrizeById(prizeId) ?? getPrizeById(getRandomPrizeId())!;
 
     const code = prize.discountPercent
-      ? await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle)
+      ? await createDiscountCode(prize.discountPercent, prize.id, fields.phone, prize.shopifyProductHandle)
       : null;
 
     await claimEntry(fields.phone, prize, code);
