@@ -76,7 +76,7 @@ export async function createOrFindShopifyCustomer(
   ]);
 
   const existing = byEmail.data.customers?.[0] ?? byPhone.data.customers?.[0] ?? null;
-  const customerPayload = { email, first_name: firstName, last_name: lastName, phone, verified_email: true };
+  const customerPayload = { email, first_name: firstName, last_name: lastName, phone, verified_email: true, tags: "giveaway-entry" };
 
   if (existing) {
     await axios.put(`${baseUrl}/customers/${existing.id}.json`, { customer: customerPayload }, { headers });
