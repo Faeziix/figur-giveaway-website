@@ -1,398 +1,173 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState, useRef } from "react";
+import { motion } from "motion/react";
 import posthog from "posthog-js";
 import { Sparkles } from "@/app/_components/shared/sparkles";
 import { PhoneInput } from "@/app/_components/shared/phone-input";
 import type { EntryFormData } from "@/app/_types";
 
-type FieldKey = keyof EntryFormData;
-
-interface StepConfig {
-  field: FieldKey;
-  question: string;
-  hint?: string;
-  type: "text" | "email" | "tel" | "phone" | "choice";
-  placeholder?: string;
-  options?: { value: string; label: string }[];
-  validate: (val: string) => string | undefined;
+interface FormErrors {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
 }
-
-const STEPS: StepConfig[] = [
-  {
-    field: "firstName",
-    question: "What's your first name?",
-    type: "text",
-    placeholder: "Type here…",
-    validate: (v) => (!v.trim() ? "This field is required" : undefined),
-  },
-  {
-    field: "lastName",
-    question: "And your last name?",
-    type: "text",
-    placeholder: "Type here…",
-    validate: (v) => (!v.trim() ? "This field is required" : undefined),
-  },
-  {
-    field: "email",
-    question: "Your email address?",
-    hint: "We'll send your prize here.",
-    type: "email",
-    placeholder: "name@example.com",
-    validate: (v) => {
-      if (!v.trim()) return "This field is required";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
-      return undefined;
-    },
-  },
-  {
-    field: "phone",
-    question: "Your mobile number?",
-    hint: "Select your country code, then type your number.",
-    type: "phone",
-    validate: (v) => (v.replace(/\D/g, "").length < 7 ? "Please enter your mobile number" : undefined),
-  },
-  {
-    field: "residency",
-    question: "Are you based in the UAE?",
-    type: "choice",
-    options: [
-      { value: "resident", label: "UAE Resident" },
-      { value: "tourist", label: "Tourist / Visitor" },
-    ],
-    validate: (v) => (!v ? "Please choose one" : undefined),
-  },
-  {
-    field: "preferredLanguage",
-    question: "Which language do you prefer?",
-    type: "choice",
-    options: [
-      { value: "english", label: "English" },
-      { value: "arabic", label: "Arabic — عربي" },
-    ],
-    validate: (v) => (!v ? "Please choose one" : undefined),
-  },
-  {
-    field: "figurPurpose",
-    question: "What brings you to Figùr?",
-    type: "choice",
-    options: [
-      { value: "personal", label: "Personal treat" },
-      { value: "gift", label: "Gift for someone" },
-      { value: "corporate", label: "Corporate gifting" },
-      { value: "occasion", label: "Special occasion" },
-      { value: "exploring", label: "Just exploring" },
-    ],
-    validate: (v) => (!v ? "Please choose one" : undefined),
-  },
-];
-
-type FormValues = Record<FieldKey, string>;
-
-const INITIAL_VALUES: FormValues = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  residency: "",
-  preferredLanguage: "",
-  figurPurpose: "",
-};
-
-const stepVariants = {
-  enter: (dir: number) => ({ y: dir > 0 ? 52 : -52, opacity: 0 }),
-  center: { y: 0, opacity: 1 },
-  exit: (dir: number) => ({ y: dir > 0 ? -52 : 52, opacity: 0 }),
-};
 
 interface ActFormProps {
   onSubmitted: (data: EntryFormData) => void;
 }
 
 export function ActForm({ onSubmitted }: ActFormProps) {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
-  const [fieldError, setFieldError] = useState<string | undefined>();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const step = STEPS[stepIndex];
-  const isLastStep = stepIndex === STEPS.length - 1;
-  const progressPct = ((stepIndex + 1) / STEPS.length) * 100;
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (step.type !== "choice" && step.type !== "phone") {
-      const t = setTimeout(() => inputRef.current?.focus(), 460);
-      return () => clearTimeout(t);
+  function validate(): FormErrors {
+    const errs: FormErrors = {};
+    if (!firstName.trim()) errs.firstName = "Required";
+    if (!lastName.trim()) errs.lastName = "Required";
+    if (phone.replace(/\D/g, "").length < 7) errs.phone = "Enter a valid phone number";
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errs.email = "Enter a valid email address";
     }
-  }, [stepIndex, step.type]);
+    return errs;
+  }
 
-  const submit = useCallback((finalValues: FormValues) => {
-    posthog.identify(finalValues.email, {
-      email: finalValues.email,
-      first_name: finalValues.firstName,
-      last_name: finalValues.lastName,
-      residency: finalValues.residency,
-      preferred_language: finalValues.preferredLanguage,
-      figur_purpose: finalValues.figurPurpose,
-    });
-    posthog.capture("form_submitted", {
-      residency: finalValues.residency,
-      preferred_language: finalValues.preferredLanguage,
-      figur_purpose: finalValues.figurPurpose,
-    });
-    onSubmitted(finalValues as EntryFormData);
-  }, [onSubmitted]);
-
-  const advance = useCallback(() => {
-    const val = values[step.field] ?? "";
-    const err = step.validate(val);
-    if (err) { setFieldError(err); return; }
-    setFieldError(undefined);
-
-    if (isLastStep) {
-      submit(values);
-    } else {
-      posthog.capture("form_step_completed", { step_index: stepIndex, field: step.field });
-      setDirection(1);
-      setStepIndex((i) => i + 1);
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
     }
-  }, [values, step, stepIndex, isLastStep, submit]);
 
-  const goBack = useCallback(() => {
-    if (stepIndex === 0) return;
-    setDirection(-1);
-    setStepIndex((i) => i - 1);
-    setFieldError(undefined);
-    setServerError(null);
-  }, [stepIndex]);
+    posthog.capture("form_submitted", { has_email: !!email.trim() });
 
-  const handleChoiceSelect = useCallback((value: string) => {
-    const updated = { ...values, [step.field]: value };
-    setValues(updated);
-    setFieldError(undefined);
+    onSubmitted({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone,
+      email: email.trim() || undefined,
+    });
+  }
 
-    setTimeout(() => {
-      if (isLastStep) {
-        submit(updated);
-      } else {
-        posthog.capture("form_step_completed", { step_index: stepIndex, field: step.field });
-        setDirection(1);
-        setStepIndex((i) => i + 1);
-      }
-    }, 260);
-  }, [values, step.field, stepIndex, isLastStep, submit]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValues((v) => ({ ...v, [step.field]: e.target.value }));
-    setFieldError(undefined);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") { e.preventDefault(); advance(); }
-  };
+  const fieldClass = (hasError: boolean) =>
+    `w-full bg-white/60 border rounded-2xl px-5 py-4 font-body text-plum-deep text-base outline-none transition-all duration-200 placeholder:text-plum/30 ${
+      hasError
+        ? "border-red-400 focus:border-red-400"
+        : "border-plum/10 focus:border-butter focus:bg-white/90"
+    }`;
 
   return (
     <section
-      className="relative min-h-dvh flex flex-col overflow-hidden"
+      className="relative min-h-dvh flex flex-col items-center justify-center px-6 py-16 overflow-hidden"
       style={{ background: "oklch(0.975 0.012 60)" }}
     >
       <Sparkles count={6} />
 
-      {/* Progress bar */}
-      <div className="relative z-10 w-full h-[3px] bg-plum/10">
-        <motion.div
-          className="h-full bg-butter"
-          animate={{ width: `${progressPct}%` }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        />
-      </div>
-
-      {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-5">
-        <AnimatePresence>
-          {stepIndex > 0 && (
-            <motion.button
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.25 }}
-              onClick={goBack}
-              className="flex items-center gap-1.5 text-ink-soft text-sm font-body hover:text-plum transition-colors"
-            >
-              ← Back
-            </motion.button>
-          )}
-        </AnimatePresence>
-        <span className="ml-auto font-body text-ink-soft text-xs tabular-nums">
-          <span className="text-plum-deep font-medium">{stepIndex + 1}</span>
-          <span className="opacity-40"> / {STEPS.length}</span>
-        </span>
-      </div>
-
-      {/* Step */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-6 md:px-12">
-        <div className="w-full max-w-xl">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={stepIndex}
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-10"
-            >
-              {/* Question */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-body text-butter text-xs tracking-[0.15em] uppercase tabular-nums">
-                    {String(stepIndex + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-butter/50 text-xs">→</span>
-                </div>
-                <h2
-                  className="font-display text-plum-deep leading-[1.05] tracking-[-0.025em]"
-                  style={{ fontSize: "clamp(2.25rem, 1.5rem + 3.5vw, 4rem)" }}
-                >
-                  {step.question}
-                </h2>
-                {step.hint && (
-                  <p className="font-decorative italic text-ink-soft text-base">
-                    {step.hint}
-                  </p>
-                )}
-              </div>
-
-              {/* Input */}
-              {step.type !== "choice" ? (
-                <div className="space-y-10">
-                  <div className="relative pb-1">
-                    {step.type === "phone" ? (
-                      <PhoneInput
-                        value={values[step.field]}
-                        onChange={(v) => { setValues((prev) => ({ ...prev, phone: v })); setFieldError(undefined); }}
-                        onKeyDown={handleKeyDown}
-                        error={fieldError}
-                      />
-                    ) : (
-                      <>
-                        <input
-                          ref={inputRef}
-                          type={step.type}
-                          value={values[step.field]}
-                          onChange={handleInputChange}
-                          onKeyDown={handleKeyDown}
-                          placeholder={step.placeholder}
-                          autoComplete="off"
-                          className="
-                            w-full bg-transparent outline-none
-                            border-b-2 border-plum/15 focus:border-butter
-                            font-display text-plum-deep
-                            text-2xl md:text-3xl pb-3
-                            placeholder:text-plum/20
-                            transition-colors duration-300
-                          "
-                        />
-                        <AnimatePresence>
-                          {fieldError && (
-                            <motion.p
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="absolute -bottom-6 left-0 text-xs font-body text-red-500"
-                            >
-                              {fieldError}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <motion.button
-                      onClick={advance}
-                      className="inline-flex items-center gap-2 bg-plum text-cream font-body font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-plum-deep transition-colors"
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {isLastStep ? "Submit" : "Next →"}
-                    </motion.button>
-                    {serverError && (
-                      <p className="text-sm font-body text-red-500">{serverError}</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {step.options!.map((opt, i) => {
-                    const selected = values[step.field] === opt.value;
-                    return (
-                      <motion.button
-                        key={opt.value}
-                        onClick={() => handleChoiceSelect(opt.value)}
-                        initial={{ opacity: 0, x: -16 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.055, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                        whileHover={!selected ? { x: 4 } : {}}
-                        whileTap={{ scale: 0.985 }}
-                        className={`
-                          w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left
-                          transition-all duration-200 group
-                          ${selected
-                            ? "bg-butter border-butter shadow-sm"
-                            : "bg-white/50 border-plum/10 hover:border-butter/50 hover:bg-butter/6"
-                          }
-                        `}
-                      >
-                        <span
-                          className={`
-                            w-7 h-7 rounded-lg flex items-center justify-center
-                            text-[11px] font-mono font-semibold flex-shrink-0
-                            transition-colors duration-200
-                            ${selected
-                              ? "bg-plum-deep/15 text-plum-deep"
-                              : "bg-plum/8 text-plum/50 group-hover:bg-butter/30 group-hover:text-plum-deep"
-                            }
-                          `}
-                        >
-                          {String.fromCharCode(65 + i)}
-                        </span>
-                        <span
-                          className={`font-body text-base transition-colors duration-200 ${
-                            selected ? "text-plum-deep font-medium" : "text-plum-deep/80"
-                          }`}
-                        >
-                          {opt.label}
-                        </span>
-                        {selected && (
-                          <motion.span
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="ml-auto text-plum-deep/50 text-sm"
-                          >
-                            ✓
-                          </motion.span>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                  {serverError && (
-                    <p className="text-sm font-body text-red-500 bg-red-50 rounded-xl p-3 text-center mt-4">
-                      {serverError}
-                    </p>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-md"
+      >
+        <div className="mb-10 space-y-2 text-center">
+          <span className="font-body text-butter text-xs tracking-[0.2em] uppercase">
+            Figùr Giveaway
+          </span>
+          <h2
+            className="font-display text-plum-deep leading-[1.05] tracking-[-0.03em]"
+            style={{ fontSize: "clamp(2.25rem, 1.5rem + 3.5vw, 3.5rem)" }}
+          >
+            Enter to Win
+          </h2>
+          <p className="font-decorative italic text-ink-soft text-base">
+            One lucky winner. Truly yours.
+          </p>
         </div>
-      </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => { setFirstName(e.target.value); setErrors((p) => ({ ...p, firstName: undefined })); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lastNameRef.current?.focus(); } }}
+                placeholder="First name"
+                autoComplete="given-name"
+                className={fieldClass(!!errors.firstName)}
+              />
+              {errors.firstName && (
+                <p className="text-xs font-body text-red-500 pl-1">{errors.firstName}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <input
+                ref={lastNameRef}
+                type="text"
+                value={lastName}
+                onChange={(e) => { setLastName(e.target.value); setErrors((p) => ({ ...p, lastName: undefined })); }}
+                placeholder="Last name"
+                autoComplete="family-name"
+                className={fieldClass(!!errors.lastName)}
+              />
+              {errors.lastName && (
+                <p className="text-xs font-body text-red-500 pl-1">{errors.lastName}</p>
+              )}
+            </div>
+          </div>
+
+          <PhoneInput
+            value={phone}
+            onChange={(v) => { setPhone(v); setErrors((p) => ({ ...p, phone: undefined })); }}
+            error={errors.phone}
+          />
+
+          <div className="space-y-1.5">
+            <div className="relative">
+              <input
+                ref={emailRef}
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+                placeholder="Email address"
+                autoComplete="email"
+                className={fieldClass(!!errors.email)}
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-xs text-plum/30 pointer-events-none">
+                optional
+              </span>
+            </div>
+            {errors.email && (
+              <p className="text-xs font-body text-red-500 pl-1">{errors.email}</p>
+            )}
+          </div>
+
+          <div className="pt-2">
+            <motion.button
+              type="submit"
+              className="w-full bg-plum text-cream font-body font-semibold text-base py-4 rounded-2xl hover:bg-plum-deep transition-colors"
+              whileHover={{ scale: 1.015 }}
+              whileTap={{ scale: 0.975 }}
+              transition={{ duration: 0.15 }}
+            >
+              Enter Giveaway →
+            </motion.button>
+          </div>
+
+          <p className="text-center font-body text-xs text-ink-soft/50 pt-1">
+            By entering, you agree to our terms.
+          </p>
+        </form>
+      </motion.div>
     </section>
   );
 }

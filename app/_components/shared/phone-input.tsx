@@ -275,17 +275,17 @@ export function PhoneInput({ value, onChange, onKeyDown, error }: PhoneInputProp
   };
 
   return (
-    <div className="relative pb-1">
+    <div className="relative">
       <Popover.Root open={open} onOpenChange={(o) => { if (o) handleOpen(); else setOpen(false); }}>
-        <div className="flex items-end gap-3 border-b-2 border-plum/15 focus-within:border-butter transition-colors duration-300 pb-3">
+        <div className={`flex items-center bg-white/60 border rounded-2xl overflow-hidden transition-all duration-200 ${error ? "border-red-400" : "border-plum/10 focus-within:border-butter focus-within:bg-white/90"}`}>
           <Popover.Trigger asChild>
             <button
               type="button"
-              className="flex items-center gap-1.5 flex-shrink-0 font-display text-plum-deep text-2xl md:text-3xl hover:opacity-70 transition-opacity"
+              className="flex items-center gap-1.5 flex-shrink-0 pl-5 pr-4 py-4 hover:bg-plum/4 transition-colors border-r border-plum/10"
             >
-              <span>{selected.flag}</span>
-              <span className="text-plum/40 text-xl md:text-2xl">{selected.dial}</span>
-              <span className="text-plum/30 text-base mb-0.5">▾</span>
+              <span className="text-xl leading-none">{selected.flag}</span>
+              <span className="font-body text-plum-deep text-sm font-medium tabular-nums">{selected.dial}</span>
+              <span className="text-plum/30 text-xs">▾</span>
             </button>
           </Popover.Trigger>
 
@@ -295,14 +295,9 @@ export function PhoneInput({ value, onChange, onKeyDown, error }: PhoneInputProp
             value={number}
             onChange={handleNumberChange}
             onKeyDown={onKeyDown}
-            placeholder="50 000 0000"
-            autoComplete="off"
-            className="
-              flex-1 bg-transparent outline-none
-              font-display text-plum-deep
-              text-2xl md:text-3xl
-              placeholder:text-plum/20
-            "
+            placeholder="Phone number"
+            autoComplete="tel-national"
+            className="flex-1 bg-transparent outline-none px-4 py-4 font-body text-plum-deep text-base placeholder:text-plum/30"
           />
         </div>
 
@@ -356,7 +351,7 @@ export function PhoneInput({ value, onChange, onKeyDown, error }: PhoneInputProp
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute -bottom-6 left-0 text-xs font-body text-red-500"
+            className="mt-1.5 pl-1 text-xs font-body text-red-500"
           >
             {error}
           </motion.p>
