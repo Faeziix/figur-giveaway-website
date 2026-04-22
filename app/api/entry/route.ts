@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { entrySchema } from "@/app/_lib/validators";
 import { findEntryByEmail, findEntryByPhone, findEntryByIP, createEntry } from "@/app/_lib/airtable";
-import { createDiscountCode } from "@/app/_lib/shopify";
+import { createDiscountCode, createOrFindShopifyCustomer } from "@/app/_lib/shopify";
 import { sendPrizeEmail } from "@/app/_lib/resend";
 import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
 import { getPostHogClient } from "@/app/_lib/posthog-server";
@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
 
     const prizeId = clientPrizeId ?? getRandomPrizeId();
     const prize = getPrizeById(prizeId) ?? getPrizeById(getRandomPrizeId())!;
+
+    createOrFindShopifyCustomer(email ?? "", fields.firstName, fields.lastName, fields.phone).catch(
+      (err) => console.error("[shopify customer]", err)
+    );
 
     const code = prize.discountPercent
       ? await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle)
