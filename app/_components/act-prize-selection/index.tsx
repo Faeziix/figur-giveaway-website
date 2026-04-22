@@ -85,7 +85,7 @@ export function ActPrizeSelection({ formData, onRevealed }: ActPrizeSelectionPro
             className="text-plum-deep leading-tight tracking-[-0.03em]"
             style={{ fontSize: "clamp(2rem, 1.5rem + 3vw, 3.5rem)" }}
           >
-            Pick your lucky chest
+            Pick Your Lucky Chest
           </h2>
           <p className="font-body text-ink-soft text-sm">
             One chest holds your treasure. Choose wisely.
