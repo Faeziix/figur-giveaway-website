@@ -23,10 +23,10 @@ export function ActForm({ onSubmitted }: ActFormProps) {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState<"english" | "arabic">("english");
   const [errors, setErrors] = useState<FormErrors>({});
 
   const lastNameRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
@@ -47,13 +47,14 @@ export function ActForm({ onSubmitted }: ActFormProps) {
       return;
     }
 
-    posthog.capture("form_submitted", { has_email: !!email.trim() });
+    posthog.capture("form_submitted", { has_email: !!email.trim(), preferred_language: preferredLanguage });
 
     onSubmitted({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone,
       email: email.trim() || undefined,
+      preferredLanguage,
     });
   }
 
@@ -134,7 +135,6 @@ export function ActForm({ onSubmitted }: ActFormProps) {
           <div className="space-y-1.5">
             <div className="relative">
               <input
-                ref={emailRef}
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
@@ -149,6 +149,23 @@ export function ActForm({ onSubmitted }: ActFormProps) {
             {errors.email && (
               <p className="text-xs font-body text-red-500 pl-1">{errors.email}</p>
             )}
+          </div>
+
+          <div className="bg-white/60 border border-plum/10 rounded-2xl p-1.5 flex">
+            {(["english", "arabic"] as const).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setPreferredLanguage(lang)}
+                className={`flex-1 py-3 rounded-xl font-body text-sm font-medium transition-all duration-200 ${
+                  preferredLanguage === lang
+                    ? "bg-plum text-cream shadow-sm"
+                    : "text-plum/50 hover:text-plum-deep"
+                }`}
+              >
+                {lang === "english" ? "English" : "عربي"}
+              </button>
+            ))}
           </div>
 
           <div className="pt-2">

@@ -23,6 +23,7 @@ export const entrySchema = z.object({
     .trim()
     .optional()
     .or(z.literal("")),
+  preferredLanguage: z.enum(["english", "arabic"]),
   prizeId: z.number().int().min(1).max(6),
 });
 

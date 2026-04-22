@@ -3,6 +3,7 @@ export interface EntryFormData {
   lastName: string;
   phone: string;
   email?: string;
+  preferredLanguage: "english" | "arabic";
 }
 
 export type PrizeType = "discount";

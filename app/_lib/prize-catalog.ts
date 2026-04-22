@@ -20,10 +20,11 @@ export const PRIZES: Prize[] = [
   {
     id: 3,
     type: "discount",
-    headline: "20% Off Your Order",
-    description: "20% off your entire order — treat yourself to something extraordinary.",
-    value: "20% off your order",
-    discountPercent: 20,
+    headline: "Free Small Heritage Box",
+    description: "A complimentary Small Heritage Box — Figùr's signature gift, on us.",
+    value: "Free Small Heritage Box",
+    discountPercent: 100,
+    shopifyProductHandle: "small-heritage-box",
   },
   {
     id: 4,

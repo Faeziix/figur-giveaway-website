@@ -60,6 +60,7 @@ export async function createDraftEntry(
     "Last Name": payload.lastName,
     "Email": payload.email ?? "",
     "Phone": payload.phone,
+    "Preferred Language": payload.preferredLanguage === "arabic" ? "Arabic — عربي" : "English",
     "Submitted At": new Date().toISOString(),
     "IP": ip,
     "Status": "pending",
