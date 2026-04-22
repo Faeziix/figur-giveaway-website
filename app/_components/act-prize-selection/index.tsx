@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import axios from "axios";
 import posthog from "posthog-js";
 import { SectionEyebrow } from "@/app/_components/shared/section-eyebrow";
 import { Sparkles } from "@/app/_components/shared/sparkles";
-import { PRIZES } from "@/app/_lib/prize-catalog";
-import type { EntryFormData, EntryResult } from "@/app/_types";
+import type { EntryResult } from "@/app/_types";
 
 const CHEST_LABELS = [
   "Golden",
@@ -20,47 +18,36 @@ const CHEST_LABELS = [
 ];
 
 interface ActPrizeSelectionProps {
-  formData: EntryFormData;
-  selectedPrizeId: number;
+  entryResult: EntryResult | null;
+  entryError: boolean;
   onRevealed: (result: EntryResult) => void;
 }
 
-export function ActPrizeSelection({ formData, selectedPrizeId, onRevealed }: ActPrizeSelectionProps) {
-  const shuffledPrizes = useMemo(() => {
-    const copy = [...PRIZES];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-  }, []);
-
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+export function ActPrizeSelection({ entryResult, entryError, onRevealed }: ActPrizeSelectionProps) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pendingResult = useRef<EntryResult | null>(null);
 
-  const handlePickChest = async (prizeId: number) => {
-    if (selectedId !== null || isLoading) return;
-    setSelectedId(prizeId);
+  const handlePickChest = (idx: number, label: string) => {
+    if (selectedIdx !== null || isLoading) return;
+    setSelectedIdx(idx);
     setIsLoading(true);
+    posthog.capture("chest_selected", { chest_label: label });
+  };
 
-    const chestLabel = CHEST_LABELS[PRIZES.findIndex((p) => p.id === prizeId)];
-    posthog.capture("chest_selected", { prize_id: prizeId, chest_label: chestLabel });
-
-    try {
-      const { data } = await axios.post<EntryResult>("/api/entry", { ...formData, prizeId: selectedPrizeId });
-      pendingResult.current = data;
+  useEffect(() => {
+    if (selectedIdx === null || revealed) return;
+    if (entryResult) {
+      pendingResult.current = entryResult;
       setRevealed(true);
-    } catch (err) {
-      posthog.captureException(err);
-      posthog.capture("chest_selection_error", { prize_id: prizeId });
+    } else if (entryError) {
       setError("Something went wrong. Please refresh and try again.");
-      setSelectedId(null);
+      setSelectedIdx(null);
       setIsLoading(false);
     }
-  };
+  }, [selectedIdx, entryResult, entryError, revealed]);
 
   const handleRevealComplete = () => {
     if (pendingResult.current) onRevealed(pendingResult.current);
@@ -94,13 +81,13 @@ export function ActPrizeSelection({ formData, selectedPrizeId, onRevealed }: Act
         </motion.div>
 
         <div className="grid grid-cols-3 gap-5 w-full">
-          {shuffledPrizes.map((prize, i) => {
-            const isSelected = selectedId === prize.id;
-            const isOther = selectedId !== null && !isSelected;
+          {CHEST_LABELS.map((label, i) => {
+            const isSelected = selectedIdx === i;
+            const isOther = selectedIdx !== null && !isSelected;
 
             return (
               <motion.div
-                key={prize.id}
+                key={label}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{
                   opacity: isOther ? 0.2 : 1,
@@ -117,12 +104,12 @@ export function ActPrizeSelection({ formData, selectedPrizeId, onRevealed }: Act
               >
                 <TreasureChest
                   chestIndex={i + 1}
-                  label={CHEST_LABELS[i]}
+                  label={label}
                   isSelected={isSelected}
                   isLoading={isSelected && isLoading}
                   isRevealed={isSelected && revealed}
                   isDisabled={isOther || isLoading}
-                  onPick={() => handlePickChest(prize.id)}
+                  onPick={() => handlePickChest(i, label)}
                   onRevealComplete={isSelected ? handleRevealComplete : undefined}
                 />
               </motion.div>

@@ -15,7 +15,8 @@ import type { EntryFormData, EntryResult, JourneyAct } from "@/app/_types";
 export default function GiveawayPage() {
   const [act, setAct] = useState<JourneyAct>("earth");
   const [formData, setFormData] = useState<EntryFormData | null>(null);
-  const [selectedPrizeId, setSelectedPrizeId] = useState<number | null>(null);
+  const [entryResult, setEntryResult] = useState<EntryResult | null>(null);
+  const [entryError, setEntryError] = useState(false);
   const [result, setResult] = useState<EntryResult | null>(null);
 
   const advance = (next: JourneyAct) => setAct(next);
@@ -38,7 +39,10 @@ export default function GiveawayPage() {
             <ActForm
               onSubmitted={(data) => {
                 setFormData(data);
-                setSelectedPrizeId(getRandomPrizeId());
+                const prizeId = getRandomPrizeId();
+                axios.post<EntryResult>("/api/entry", { ...data, prizeId })
+                  .then((res) => setEntryResult(res.data))
+                  .catch(() => setEntryError(true));
                 axios.post("/api/sync-customer", data).catch((err) =>
                   console.error("[sync-customer]", err)
                 );
@@ -51,10 +55,10 @@ export default function GiveawayPage() {
             <ActLiftoffWithAuto onDone={() => advance("prize-selection")} />
           )}
 
-          {act === "prize-selection" && formData && selectedPrizeId && (
+          {act === "prize-selection" && formData && (
             <ActPrizeSelection
-              formData={formData}
-              selectedPrizeId={selectedPrizeId}
+              entryResult={entryResult}
+              entryError={entryError}
               onRevealed={(res) => {
                 setResult(res);
                 advance("confirmation");
