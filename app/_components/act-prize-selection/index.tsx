@@ -41,7 +41,7 @@ export function ActPrizeSelection({ entryResult, entryError, onRevealed }: ActPr
     if (selectedIdx === null || revealed) return;
     if (entryResult) {
       pendingResult.current = entryResult;
-      setRevealed(true);
+      setTimeout(() => setRevealed(true), 1000);
     } else if (entryError) {
       setError("Something went wrong. Please refresh and try again.");
       setSelectedIdx(null);
