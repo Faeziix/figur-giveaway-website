@@ -45,6 +45,7 @@ export function ActEarth({ onBegin }: ActEarthProps) {
             width={140}
             height={38}
             priority
+            style={{ height: "auto" }}
           />
         </motion.div>
 

@@ -54,7 +54,7 @@ export function Sparkles({ count = 8, className }: SparklesProps) {
             ease: "easeInOut",
           }}
         >
-          <Image src={item.sprite} alt="" width={item.size} height={item.size} />
+          <Image src={item.sprite} alt="" width={item.size} height={item.size} loading="eager" />
         </motion.div>
       ))}
     </div>
