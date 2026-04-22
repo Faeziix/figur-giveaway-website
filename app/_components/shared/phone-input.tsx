@@ -264,14 +264,18 @@ export function PhoneInput({ value, onChange, onKeyDown, error }: PhoneInputProp
     setSelected(country);
     setOpen(false);
     setSearch("");
-    onChange(country.dial + number.replace(/\s/g, ""));
+    const digits = number.replace(/\s/g, "");
+    const local = digits.startsWith("0") ? digits.slice(1) : digits;
+    onChange(country.dial + local);
     inputRef.current?.focus();
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^\d\s\-().]/g, "");
     setNumber(raw);
-    onChange(selected.dial + raw.replace(/\s/g, ""));
+    const digits = raw.replace(/\s/g, "");
+    const local = digits.startsWith("0") ? digits.slice(1) : digits;
+    onChange(selected.dial + local);
   };
 
   return (

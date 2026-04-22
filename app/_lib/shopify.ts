@@ -1,6 +1,20 @@
 import { createAdminApiClient } from "@shopify/admin-api-client";
 import axios from "axios";
 
+// eslint-disable-next-line no-control-regex
+const INVISIBLE_CHARS = /[​-‏‪-‮﻿­]/g;
+
+function cleanStr(s: string): string {
+  return s.replace(INVISIBLE_CHARS, "").trim();
+}
+
+function normalizePhone(phone: string): string {
+  const stripped = cleanStr(phone).replace(/[^\d+]/g, "");
+  // E.164: remove leading 0 from national number when a country code is present
+  // e.g. +9710562442181 -> +971562442181
+  return stripped.replace(/^(\+\d{1,3})0(\d{7,})$/, "$1$2");
+}
+
 const HERITAGE_BOX_PRODUCT_GIDS = [
   "gid://shopify/Product/9120587645185",
 ];
@@ -59,6 +73,11 @@ export async function createOrFindShopifyCustomer(
   lastName: string,
   phone: string
 ): Promise<void> {
+  const safeEmail = cleanStr(email);
+  const safeFirst = cleanStr(firstName);
+  const safeLast = cleanStr(lastName);
+  const safePhone = normalizePhone(phone);
+
   const accessToken = await getAccessToken();
   const domain = process.env.SHOPIFY_MYSHOPIFY_DOMAIN ?? "figur-7317.myshopify.com";
   const baseUrl = `https://${domain}/admin/api/2025-07`;
@@ -67,16 +86,16 @@ export async function createOrFindShopifyCustomer(
   const [byEmail, byPhone] = await Promise.all([
     axios.get(`${baseUrl}/customers/search.json`, {
       headers,
-      params: { query: `email:${email}`, limit: 1, fields: "id" },
+      params: { query: `email:${safeEmail}`, limit: 1, fields: "id" },
     }),
     axios.get(`${baseUrl}/customers/search.json`, {
       headers,
-      params: { query: `phone:${phone}`, limit: 1, fields: "id" },
+      params: { query: `phone:${safePhone}`, limit: 1, fields: "id" },
     }),
   ]);
 
   const existing = byEmail.data.customers?.[0] ?? byPhone.data.customers?.[0] ?? null;
-  const customerPayload = { email, first_name: firstName, last_name: lastName, phone, verified_email: true, tags: "giveaway-entry" };
+  const customerPayload = { email: safeEmail, first_name: safeFirst, last_name: safeLast, phone: safePhone, verified_email: true, tags: "giveaway-entry" };
 
   if (existing) {
     await axios.put(`${baseUrl}/customers/${existing.id}.json`, { customer: customerPayload }, { headers });
