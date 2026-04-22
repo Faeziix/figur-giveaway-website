@@ -8,23 +8,6 @@ const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(
 
 const TABLE = "tblYsG727GXqlo7QW";
 
-const RESIDENCY_LABELS: Record<string, string> = {
-  resident: "UAE Resident",
-  tourist: "Tourist / Visitor",
-};
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  english: "English",
-  arabic: "Arabic — عربي",
-};
-
-const PURPOSE_LABELS: Record<string, string> = {
-  personal: "Personal treat",
-  gift: "Gift for someone",
-  corporate: "Corporate gifting",
-  occasion: "Special occasion",
-  exploring: "Just exploring",
-};
 
 export async function findEntryByEmail(email: string) {
   const records = await base(TABLE)
@@ -70,15 +53,11 @@ export async function createEntry(
     "Name": `${payload.firstName} ${payload.lastName}`,
     "First Name": payload.firstName,
     "Last Name": payload.lastName,
-    "Email": payload.email,
+    "Email": payload.email ?? "",
     "Phone": payload.phone,
-    "Based in UAE?": RESIDENCY_LABELS[payload.residency] ?? payload.residency,
-    "Preferred Language": LANGUAGE_LABELS[payload.preferredLanguage] ?? payload.preferredLanguage,
-    "What brings you to Figur?": PURPOSE_LABELS[payload.figurPurpose] ?? payload.figurPurpose,
     "Prize": prize.headline,
-    "Prize Type": prize.type === "discount" ? "Discount Code" : "Loyalty Points",
+    "Prize Type": "Discount Code",
     "Discount Code": code ?? "",
-    "Points Awarded": prize.pointsAwarded ?? 0,
     "Submitted At": new Date().toISOString(),
     "IP": ip,
   });

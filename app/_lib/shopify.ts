@@ -53,49 +53,6 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-export async function createOrFindShopifyCustomer(
-  email: string,
-  firstName: string,
-  lastName: string,
-  phone: string
-): Promise<void> {
-  const accessToken = await getAccessToken();
-  const domain = process.env.SHOPIFY_MYSHOPIFY_DOMAIN ?? "figur-7317.myshopify.com";
-  const baseUrl = `https://${domain}/admin/api/2025-07`;
-  const headers = { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" };
-
-  const [byEmail, byPhone] = await Promise.all([
-    axios.get(`${baseUrl}/customers/search.json`, {
-      headers,
-      params: { query: `email:${email}`, limit: 1, fields: "id" },
-    }),
-    axios.get(`${baseUrl}/customers/search.json`, {
-      headers,
-      params: { query: `phone:${phone}`, limit: 1, fields: "id" },
-    }),
-  ]);
-
-  const existing =
-    byEmail.data.customers?.[0] ?? byPhone.data.customers?.[0] ?? null;
-
-  const customerPayload = { email, first_name: firstName, last_name: lastName, phone, verified_email: true };
-
-  if (existing) {
-    await axios.put(
-      `${baseUrl}/customers/${existing.id}.json`,
-      { customer: customerPayload },
-      { headers }
-    );
-    return;
-  }
-
-  await axios.post(
-    `${baseUrl}/customers.json`,
-    { customer: customerPayload },
-    { headers }
-  );
-}
-
 export async function createDiscountCode(
   discountPercent: number,
   prizeId: number,

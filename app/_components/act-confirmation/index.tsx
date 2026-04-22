@@ -12,13 +12,13 @@ import type { EntryResult } from "@/app/_types";
 
 interface ActConfirmationProps {
   result: EntryResult;
-  email: string;
+  email?: string;
   firstName: string;
 }
 
 export function ActConfirmation({ result, email, firstName }: ActConfirmationProps) {
   const [copied, setCopied] = useState(false);
-  const { prize, code, pointsAwarded, alreadyClaimed } = result;
+  const { prize, code, alreadyClaimed } = result;
 
   const handleCopy = async () => {
     if (!code || !prize) return;
@@ -49,7 +49,7 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
             You've already entered
           </h2>
           <p className="font-body text-cream/60 text-sm leading-relaxed">
-            We sent your prize to {email}. Check your inbox — it might be hiding in spam.
+            {email ? `We sent your prize to ${email}. Check your inbox — it might be hiding in spam.` : "You've already claimed your prize."}
           </p>
           <Link href="https://figur.ae" external>
             <Button variant="ghost" size="md" className="w-full border-cream/20 text-cream hover:bg-cream/10">
@@ -114,43 +114,25 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
           transition={{ duration: 0.8, delay: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
           className="bg-cream/8 backdrop-blur-sm border border-butter/20 rounded-3xl p-8 space-y-5"
         >
-          {prize?.type === "discount" && code ? (
-            <>
-              <p className="font-body text-butter/70 text-xs tracking-widest uppercase">
-                Your Discount Code
-              </p>
-              <div
-                className="font-display text-2xl md:text-3xl text-butter tracking-widest bg-plum-deep/60 rounded-2xl py-4 px-6"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {code}
-              </div>
-              <Button variant="butter" size="md" className="w-full" onClick={handleCopy}>
-                {copied ? "✓ Copied!" : "Copy Code"}
-              </Button>
+          <>
+            <p className="font-body text-butter/70 text-xs tracking-widest uppercase">
+              Your Discount Code
+            </p>
+            <div
+              className="font-display text-2xl md:text-3xl text-butter tracking-widest bg-plum-deep/60 rounded-2xl py-4 px-6"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {code}
+            </div>
+            <Button variant="butter" size="md" className="w-full" onClick={handleCopy}>
+              {copied ? "✓ Copied!" : "Copy Code"}
+            </Button>
+            {email && (
               <p className="font-body text-cream/40 text-xs">
                 Also sent to {email}
               </p>
-            </>
-          ) : (
-            <>
-              <p className="font-body text-butter/70 text-xs tracking-widest uppercase">
-                Figùr Loyalty Points
-              </p>
-              <div
-                className="font-display text-6xl text-butter"
-                style={{ fontSize: "clamp(3rem, 2rem + 4vw, 5rem)" }}
-              >
-                {pointsAwarded}
-              </div>
-              <p className="font-body text-cream/50 text-sm">
-                Points banked to your Figùr account.
-              </p>
-              <p className="font-body text-cream/30 text-xs">
-                Confirmation sent to {email}
-              </p>
-            </>
-          )}
+            )}
+          </>
         </motion.div>
 
         <div className="h-px bg-gradient-to-r from-transparent via-butter/20 to-transparent" />
@@ -162,12 +144,12 @@ export function ActConfirmation({ result, email, firstName }: ActConfirmationPro
           className="space-y-4"
         >
           <Link
-            href={prize?.type === "discount" && code ? `https://figur.ae/discount/${code}?redirect=/collections/all` : "https://figur.ae"}
+            href={code ? `https://figur.ae/discount/${code}?redirect=/collections/all` : "https://figur.ae"}
             external
-            onClick={() => posthog.capture("shop_cta_clicked", { prize_type: prize?.type })}
+            onClick={() => posthog.capture("shop_cta_clicked", { prize_id: prize?.id })}
           >
             <Button variant="ghost" size="md" className="w-full border-cream/20 text-cream hover:bg-cream/10">
-              {prize?.type === "discount" && code ? "Shop at Figur.ae — discount applied →" : "Shop at Figur.ae →"}
+              {code ? "Shop at Figur.ae — discount applied →" : "Shop at Figur.ae →"}
             </Button>
           </Link>
           <p className="font-decorative italic text-cream/25 text-xs">

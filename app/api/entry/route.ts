@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { entrySchema } from "@/app/_lib/validators";
 import { findEntryByEmail, findEntryByPhone, findEntryByIP, createEntry } from "@/app/_lib/airtable";
-import { createDiscountCode, createOrFindShopifyCustomer } from "@/app/_lib/shopify";
+import { createDiscountCode } from "@/app/_lib/shopify";
 import { sendPrizeEmail } from "@/app/_lib/resend";
 import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
 import { getPostHogClient } from "@/app/_lib/posthog-server";
@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { prizeId: clientPrizeId, ...fields } = parsed.data;
+    const email = fields.email || null;
+    const distinctId = email ?? fields.phone;
 
     const posthog = getPostHogClient();
 
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const [existingByCookie, existingByEmail, existingByPhone, existingByIP] = await Promise.all([
       cookieEntry ? findEntryByEmail(cookieEntry) : Promise.resolve(null),
-      findEntryByEmail(fields.email),
+      email ? findEntryByEmail(email) : Promise.resolve(null),
       findEntryByPhone(fields.phone),
       ip !== "unknown" ? findEntryByIP(ip) : Promise.resolve(null),
     ]);
@@ -41,10 +43,10 @@ export async function POST(req: NextRequest) {
 
     if (alreadyClaimed) {
       posthog?.capture({
-        distinctId: fields.email,
+        distinctId,
         event: "entry_already_claimed",
         properties: {
-          email: fields.email,
+          email,
           matched_cookie: !!existingByCookie,
           matched_email: !!existingByEmail,
           matched_phone: !!existingByPhone,
@@ -59,60 +61,51 @@ export async function POST(req: NextRequest) {
     const prizeId = clientPrizeId ?? getRandomPrizeId();
     const prize = getPrizeById(prizeId) ?? getPrizeById(getRandomPrizeId())!;
 
-    let code: string | null = null;
-    const [, resolvedCode] = await Promise.all([
-      createOrFindShopifyCustomer(fields.email, fields.firstName, fields.lastName, fields.phone).catch((err) =>
-        console.error("[shopify customer]", err)
-      ),
-      prize.type === "discount" && prize.discountPercent
-        ? createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle)
-        : Promise.resolve(null),
-    ]);
-    code = resolvedCode;
+    const code = prize.discountPercent
+      ? await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle)
+      : null;
 
     await createEntry(fields, prize, code, ip);
 
-    await sendPrizeEmail(fields.email, fields.firstName, prize, code);
+    if (email) {
+      await sendPrizeEmail(email, fields.firstName, prize, code);
+    }
 
     const result: EntryResult = {
       prize,
       code: code ?? undefined,
-      pointsAwarded: prize.pointsAwarded,
       alreadyClaimed: false,
     };
 
     posthog?.identify({
-      distinctId: fields.email,
+      distinctId,
       properties: {
-        email: fields.email,
+        email,
         first_name: fields.firstName,
         last_name: fields.lastName,
-        residency: fields.residency,
-        preferred_language: fields.preferredLanguage,
-        figur_purpose: fields.figurPurpose,
       },
     });
     posthog?.capture({
-      distinctId: fields.email,
+      distinctId,
       event: "entry_submitted",
       properties: {
         prize_id: prize.id,
         prize_type: prize.type,
-        residency: fields.residency,
-        preferred_language: fields.preferredLanguage,
-        figur_purpose: fields.figurPurpose,
         has_discount_code: !!code,
+        has_email: !!email,
       },
     });
     await posthog?.shutdown();
 
     const response = NextResponse.json(result, { status: 201 });
-    response.cookies.set("figur_entry", fields.email, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24 * 90,
-      path: "/",
-      sameSite: "lax",
-    });
+    if (email) {
+      response.cookies.set("figur_entry", email, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 90,
+        path: "/",
+        sameSite: "lax",
+      });
+    }
 
     return response;
   } catch (err) {
