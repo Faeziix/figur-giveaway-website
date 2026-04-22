@@ -8,59 +8,76 @@ const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(
 
 const TABLE = "tblYsG727GXqlo7QW";
 
-
-export async function findEntryByEmail(email: string) {
+export async function findClaimedByEmail(email: string) {
   const records = await base(TABLE)
     .select({
-      filterByFormula: `{Email} = "${email.replace(/"/g, '\\"')}"`,
+      filterByFormula: `AND({Email} = "${email.replace(/"/g, '\\"')}", {Status} = "claimed")`,
       maxRecords: 1,
     })
     .firstPage();
-
   return records.length > 0 ? records[0] : null;
 }
 
-export async function findEntryByPhone(phone: string) {
+export async function findClaimedByPhone(phone: string) {
   const normalized = phone.replace(/\s+/g, "");
   const records = await base(TABLE)
     .select({
-      filterByFormula: `SUBSTITUTE({Phone}, " ", "") = "${normalized.replace(/"/g, '\\"')}"`,
+      filterByFormula: `AND(SUBSTITUTE({Phone}, " ", "") = "${normalized.replace(/"/g, '\\"')}", {Status} = "claimed")`,
       maxRecords: 1,
     })
     .firstPage();
-
   return records.length > 0 ? records[0] : null;
 }
 
-export async function findEntryByIP(ip: string) {
+export async function findClaimedByIP(ip: string) {
   const records = await base(TABLE)
     .select({
-      filterByFormula: `{IP} = "${ip.replace(/"/g, '\\"')}"`,
+      filterByFormula: `AND({IP} = "${ip.replace(/"/g, '\\"')}", {Status} = "claimed")`,
       maxRecords: 1,
     })
     .firstPage();
-
   return records.length > 0 ? records[0] : null;
 }
 
-export async function createEntry(
+export async function findPendingByPhone(phone: string) {
+  const normalized = phone.replace(/\s+/g, "");
+  const records = await base(TABLE)
+    .select({
+      filterByFormula: `AND(SUBSTITUTE({Phone}, " ", "") = "${normalized.replace(/"/g, '\\"')}", {Status} = "pending")`,
+      maxRecords: 1,
+    })
+    .firstPage();
+  return records.length > 0 ? records[0] : null;
+}
+
+export async function createDraftEntry(
   payload: Omit<EntryPayload, "prizeId">,
-  prize: Prize,
-  code: string | null,
   ip: string
 ) {
-  const record = await base(TABLE).create({
+  return base(TABLE).create({
     "Name": `${payload.firstName} ${payload.lastName}`,
     "First Name": payload.firstName,
     "Last Name": payload.lastName,
     "Email": payload.email ?? "",
     "Phone": payload.phone,
+    "Submitted At": new Date().toISOString(),
+    "IP": ip,
+    "Status": "pending",
+  });
+}
+
+export async function claimEntry(
+  phone: string,
+  prize: Prize,
+  code: string | null
+) {
+  const pending = await findPendingByPhone(phone);
+  if (!pending) return;
+
+  await base(TABLE).update(pending.id, {
     "Prize": prize.headline,
     "Prize Type": "Discount Code",
     "Discount Code": code ?? "",
-    "Submitted At": new Date().toISOString(),
-    "IP": ip,
+    "Status": "claimed",
   });
-
-  return record;
 }

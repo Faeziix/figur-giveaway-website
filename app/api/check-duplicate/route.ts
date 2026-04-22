@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findEntryByEmail } from "@/app/_lib/airtable";
+import { findClaimedByEmail } from "@/app/_lib/airtable";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    const existing = await findEntryByEmail(email.toLowerCase().trim());
+    const existing = await findClaimedByEmail(email.toLowerCase().trim());
     if (existing) {
       return NextResponse.json({ exists: true }, { status: 409 });
     }

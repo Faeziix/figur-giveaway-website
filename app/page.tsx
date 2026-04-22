@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import axios from "axios";
 import { ActEarth } from "@/app/_components/act-earth";
 import { ActLiftoff } from "@/app/_components/act-liftoff";
 import { ActForm } from "@/app/_components/act-form";
@@ -35,6 +36,9 @@ export default function GiveawayPage() {
             <ActForm
               onSubmitted={(data) => {
                 setFormData(data);
+                axios.post("/api/sync-customer", data).catch((err) =>
+                  console.error("[sync-customer]", err)
+                );
                 advance("liftoff");
               }}
             />

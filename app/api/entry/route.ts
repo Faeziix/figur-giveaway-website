@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { entrySchema } from "@/app/_lib/validators";
-import { findEntryByEmail, findEntryByPhone, findEntryByIP, createEntry } from "@/app/_lib/airtable";
-import { createDiscountCode, createOrFindShopifyCustomer } from "@/app/_lib/shopify";
+import { findClaimedByEmail, findClaimedByPhone, findClaimedByIP, claimEntry } from "@/app/_lib/airtable";
+import { createDiscountCode } from "@/app/_lib/shopify";
 import { sendPrizeEmail } from "@/app/_lib/resend";
 import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
 import { getPostHogClient } from "@/app/_lib/posthog-server";
@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
     const cookieEntry = req.cookies.get("figur_entry")?.value;
 
     const [existingByCookie, existingByEmail, existingByPhone, existingByIP] = await Promise.all([
-      cookieEntry ? findEntryByEmail(cookieEntry) : Promise.resolve(null),
-      email ? findEntryByEmail(email) : Promise.resolve(null),
-      findEntryByPhone(fields.phone),
-      ip !== "unknown" ? findEntryByIP(ip) : Promise.resolve(null),
+      cookieEntry ? findClaimedByEmail(cookieEntry) : Promise.resolve(null),
+      email ? findClaimedByEmail(email) : Promise.resolve(null),
+      findClaimedByPhone(fields.phone),
+      ip !== "unknown" ? findClaimedByIP(ip) : Promise.resolve(null),
     ]);
 
     const alreadyClaimed = !!(existingByCookie || existingByEmail || existingByPhone || existingByIP);
@@ -61,15 +61,11 @@ export async function POST(req: NextRequest) {
     const prizeId = clientPrizeId ?? getRandomPrizeId();
     const prize = getPrizeById(prizeId) ?? getPrizeById(getRandomPrizeId())!;
 
-    createOrFindShopifyCustomer(email ?? "", fields.firstName, fields.lastName, fields.phone).catch(
-      (err) => console.error("[shopify customer]", err)
-    );
-
     const code = prize.discountPercent
       ? await createDiscountCode(prize.discountPercent, prize.id, prize.shopifyProductHandle)
       : null;
 
-    await createEntry(fields, prize, code, ip);
+    await claimEntry(fields.phone, prize, code);
 
     if (email) {
       await sendPrizeEmail(email, fields.firstName, prize, code);
@@ -83,11 +79,7 @@ export async function POST(req: NextRequest) {
 
     posthog?.identify({
       distinctId,
-      properties: {
-        email,
-        first_name: fields.firstName,
-        last_name: fields.lastName,
-      },
+      properties: { email, first_name: fields.firstName, last_name: fields.lastName },
     });
     posthog?.capture({
       distinctId,
