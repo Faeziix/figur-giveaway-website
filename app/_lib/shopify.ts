@@ -23,7 +23,6 @@ const CREATE_DISCOUNT_MUTATION = `
   mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
     discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
       codeDiscountNode {
-        id
         codeDiscount {
           ... on DiscountCodeBasic {
             codes(first: 1) {
@@ -44,14 +43,6 @@ const CREATE_DISCOUNT_MUTATION = `
   }
 `;
 
-const TAGS_ADD_MUTATION = `
-  mutation tagsAdd($id: ID!, $tags: [String!]!) {
-    tagsAdd(id: $id, tags: $tags) {
-      node { id }
-      userErrors { message }
-    }
-  }
-`;
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
@@ -143,7 +134,7 @@ export async function createDiscountCode(
   const { data, errors } = await client.request(CREATE_DISCOUNT_MUTATION, {
     variables: {
       basicCodeDiscount: {
-        title: `Giveaway ${discountPercent}% Off — ${code}`,
+        title: `Giveaway ${discountPercent}% Off — ${code} | ${normalizePhone(phone)}`,
         code,
         startsAt: now,
         endsAt: expiry,
@@ -165,13 +156,6 @@ export async function createDiscountCode(
   const userErrors = data.discountCodeBasicCreate?.userErrors ?? [];
   if (userErrors.length > 0) {
     throw new Error(`Shopify user errors: ${JSON.stringify(userErrors)}`);
-  }
-
-  const nodeId = data.discountCodeBasicCreate?.codeDiscountNode?.id;
-  if (nodeId) {
-    client.request(TAGS_ADD_MUTATION, {
-      variables: { id: nodeId, tags: ["giveaway", normalizePhone(phone)] },
-    }).catch(() => {});
   }
 
   const returnedCode =
