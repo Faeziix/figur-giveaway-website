@@ -4,6 +4,7 @@ export interface EntryFormData {
   phone: string;
   email?: string;
   preferredLanguage: "english" | "arabic";
+  visitorType: "resident" | "tourist";
 }
 
 export type PrizeType = "discount";

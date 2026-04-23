@@ -61,6 +61,7 @@ export async function createDraftEntry(
     "Email": payload.email ?? "",
     "Phone": payload.phone,
     "Preferred Language": payload.preferredLanguage === "arabic" ? "Arabic — عربي" : "English",
+    "Visitor Type": payload.visitorType === "tourist" ? "Tourist" : "Resident",
     "Submitted At": new Date().toISOString(),
     "IP": ip,
     "Status": "pending",

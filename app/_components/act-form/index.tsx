@@ -24,6 +24,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState<"english" | "arabic">("english");
+  const [visitorType, setVisitorType] = useState<"resident" | "tourist">("resident");
   const [errors, setErrors] = useState<FormErrors>({});
 
   const lastNameRef = useRef<HTMLInputElement>(null);
@@ -32,7 +33,11 @@ export function ActForm({ onSubmitted }: ActFormProps) {
     const errs: FormErrors = {};
     if (!firstName.trim()) errs.firstName = "Required";
     if (!lastName.trim()) errs.lastName = "Required";
-    if (phone.replace(/\D/g, "").length < 7) errs.phone = "Enter a valid phone number";
+    const phoneDigits = phone.replace(/\D/g, "");
+    const isUAE = phoneDigits.startsWith("971");
+    if (isUAE ? phoneDigits.length !== 12 : phoneDigits.length < 7) {
+      errs.phone = isUAE ? "UAE numbers must be 9 digits after +971" : "Enter a valid phone number";
+    }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errs.email = "Enter a valid email address";
     }
@@ -47,7 +52,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
       return;
     }
 
-    posthog.capture("form_submitted", { has_email: !!email.trim(), preferred_language: preferredLanguage });
+    posthog.capture("form_submitted", { has_email: !!email.trim(), preferred_language: preferredLanguage, visitor_type: visitorType });
 
     onSubmitted({
       firstName: firstName.trim(),
@@ -55,6 +60,7 @@ export function ActForm({ onSubmitted }: ActFormProps) {
       phone,
       email: email.trim() || undefined,
       preferredLanguage,
+      visitorType,
     });
   }
 
@@ -161,9 +167,25 @@ export function ActForm({ onSubmitted }: ActFormProps) {
                   preferredLanguage === lang
                     ? "bg-plum text-cream shadow-sm"
                     : "text-plum/50 hover:text-plum-deep"
+                }`}              >
+                {lang === "english" ? "English" : "عربي"}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white/60 border border-plum/10 rounded-2xl p-1.5 flex">
+            {(["resident", "tourist"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setVisitorType(type)}
+                className={`flex-1 py-3 rounded-xl font-body text-sm font-medium transition-all duration-200 ${
+                  visitorType === type
+                    ? "bg-plum text-cream shadow-sm"
+                    : "text-plum/50 hover:text-plum-deep"
                 }`}
               >
-                {lang === "english" ? "English" : "عربي"}
+                {type === "resident" ? "Resident" : "Tourist"}
               </button>
             ))}
           </div>
