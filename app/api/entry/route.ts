@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { entrySchema } from "@/app/_lib/validators";
-import { findClaimedByEmail, findClaimedByPhone, findClaimedByIP, claimEntry } from "@/app/_lib/airtable";
+import { findClaimedByEmail, findClaimedByPhone, claimEntry } from "@/app/_lib/airtable";
 import { createDiscountCode } from "@/app/_lib/shopify";
 import { sendPrizeEmail } from "@/app/_lib/resend";
 import { getPrizeById, getRandomPrizeId } from "@/app/_lib/prize-catalog";
@@ -25,21 +25,15 @@ export async function POST(req: NextRequest) {
 
     const posthog = getPostHogClient();
 
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      req.headers.get("x-real-ip") ??
-      "unknown";
-
     const cookieEntry = req.cookies.get("figur_entry")?.value;
 
-    const [existingByCookie, existingByEmail, existingByPhone, existingByIP] = await Promise.all([
+    const [existingByCookie, existingByEmail, existingByPhone] = await Promise.all([
       cookieEntry ? findClaimedByEmail(cookieEntry) : Promise.resolve(null),
       email ? findClaimedByEmail(email) : Promise.resolve(null),
       findClaimedByPhone(fields.phone),
-      ip !== "unknown" ? findClaimedByIP(ip) : Promise.resolve(null),
     ]);
 
-    const alreadyClaimed = !!(existingByCookie || existingByEmail || existingByPhone || existingByIP);
+    const alreadyClaimed = !!(existingByCookie || existingByEmail || existingByPhone);
 
     if (alreadyClaimed) {
       posthog?.capture({
@@ -50,7 +44,6 @@ export async function POST(req: NextRequest) {
           matched_cookie: !!existingByCookie,
           matched_email: !!existingByEmail,
           matched_phone: !!existingByPhone,
-          matched_ip: !!existingByIP,
         },
       });
       await posthog?.shutdown();
